@@ -71,6 +71,9 @@ const [scanData, setScanData] = useState(false);
     <View style = {styles.container}>
       <CameraView
         style = {StyleSheet.absoluteFillObject}
+        //For web, However, it only works for qr codes. Unless the camera on my device is terrible.
+        barcodeScannerSettings={{ barcodeTypes: ["ean13", "qr", "ean8", "aztec", "upc_a", "upc_e", "codabar", "code39", "datamatrix", "itf14", "pdf417"],}} 
+
         onBarcodeScanned= {scanData? undefined:handleBarCodeScanned}
         />
         {scanData && <Button 
