@@ -1,6 +1,7 @@
 import { Image } from "expo-image";
 import { Text, View, StyleSheet, Button, Platform, TouchableOpacity } from "react-native";
-import React, { ReactNode } from "react";
+import React, { ReactNode, useRef } from "react";
+
 
 //camera functionality
 import { CameraView, Camera} from 'expo-camera';
@@ -10,6 +11,10 @@ import { CameraView, Camera} from 'expo-camera';
 //Most tutorials use this to store the data
 import {useState, useEffect} from "react";
 
+
+
+
+
 const Scanner = () => {
   
 const [hasPermission, setHasPermission] = useState<boolean | null>(null);
@@ -18,8 +23,13 @@ const [scanData, setScanData] = useState(false);
   useEffect(() =>{
     //Request perms for the camera
     (async() => {
+      if (Platform.OS ==="web") {
+        setHasPermission(true);
+      } else {
         const {status} = await Camera.requestCameraPermissionsAsync();
         setHasPermission(status === 'granted');
+      }
+
     })();
   }, [] );
 
@@ -34,13 +44,26 @@ const [scanData, setScanData] = useState(false);
 
   //Done like this because unsure why not implicitly done for any datatype
   //Could also make interface, and call it.
+
+  //To stop it after getting the barcode, uses a useRef:
+  //Off when ready, on to stop further scans through handleBarCodeScanned
+
+
+  
   const handleBarCodeScanned = ({type, data}: { type: any, data: any }) => {
     setScanData(true);
+    
     console.log("Type: " + type)
     console.log("Data: " + data)
 
-    //logic here to process the barcode number
+    const barcodeNumber = data;
+    //logic here to process the barcode number into the ai api
+    
   };
+
+  //Buttons for ending and starting camera again
+
+
   
 
 
@@ -54,6 +77,7 @@ const [scanData, setScanData] = useState(false);
           title="Press To Open Camera to Scan"
           onPress={()=>setScanData(false)}
         /> }
+                
       </View>
   );
 }
