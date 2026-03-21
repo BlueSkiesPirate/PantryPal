@@ -10,10 +10,6 @@ import { CameraView, Camera} from 'expo-camera';
 //Most tutorials use this to store the data
 import {useState, useEffect} from "react";
 
-
-
-
-
 const Scanner = () => {
   
 const [hasPermission, setHasPermission] = useState<boolean | null>(null);
