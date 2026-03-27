@@ -1,98 +1,369 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { CameraView, useCameraPermissions } from "expo-camera";
+import React, { useMemo, useState } from "react";
+import {
+  Button,
+  Dimensions,
+  Image,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
+import handleScraping from "./../../response";
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+
+import { Feather } from "@expo/vector-icons";
+
+const { width, height } = Dimensions.get("window");
+const MENU_WIDTH = width / 3;
+
+type ItemType = {
+  id: number;
+  name: string;
+  image: string;
+};
 
 export default function HomeScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+  const [menuOpen, setMenuOpen] = useState(false);
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+  // const [hasPermission, setHasPermission] = useState(null);
+  const [scanned, setScanned] = useState(false);
+  const [text, setText] = useState("Not Yet scanned");
+  let [info, setInfo] = useState("");
+
+  const [permission, requestPermission] = useCameraPermissions();
+
+  if (!permission) {
+    // Camera permissions are still loading.
+    return <View />;
+  }
+
+  if (!permission.granted) {
+    // Camera permissions are not granted yet.
+    return (
+      <View>
+        <Text>We need your permission to show the camera</Text>
+        <Button onPress={requestPermission} title="grant permission" />
+      </View>
+    );
+  }
+
+  const handleBarCodeScanned = ({
+    type,
+    data,
+  }: {
+    type: string;
+    data: string;
+  }) => {
+    setScanned(true);
+    setText(data);
+    console.log("Type: " + type + "\nData: " + data);
+    setInfo(handleScraping(data));
+  };
+  const items: ItemType[] = useMemo(
+    () => [
+      {
+        id: 1,
+        name: info,
+        image: "https://via.placeholder.com/70",
+      },
+    ],
+    [],
+  );
+
+  return (
+    <SafeAreaProvider>
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.container}>
+          {/* Overlay */}
+          {menuOpen && (
+            <Pressable
+              style={styles.overlay}
+              onPress={() => setMenuOpen(false)}
+            />
+          )}
+
+          {/* Side Menu */}
+          <View
+            style={[
+              styles.sideMenu,
+              {
+                width: MENU_WIDTH,
+                left: menuOpen ? 0 : -MENU_WIDTH,
+              },
+            ]}
+          >
+            <Text style={styles.menuTitle}>Menu</Text>
+            <Pressable style={styles.menuItem}>
+              <Text style={styles.menuItemText}>Profile</Text>
+            </Pressable>
+            <Pressable style={styles.menuItem}>
+              <Text style={styles.menuItemText}>Settings</Text>
+            </Pressable>
+            <Pressable style={styles.menuItem}>
+              <Text style={styles.menuItemText}>Saved Items</Text>
+            </Pressable>
+          </View>
+
+          {/* Top Navbar */}
+          <View style={styles.topNavbar}>
+            <Pressable
+              onPress={() => setMenuOpen(!menuOpen)}
+              style={styles.iconBtn}
+            >
+              <Feather name="user" size={24} color="black" />
+            </Pressable>
+            <Image
+              source={require("../../assets/images/logo.png")}
+              style={styles.logo}
+            />
+            <View style={styles.rightSpacer} />
+          </View>
+
+          {/* Main Section */}
+          <View style={styles.mainSection}>
+            {/* Top Portion */}
+            <View style={styles.topSection}>
+              <View style={styles.card}>
+                <CameraView
+                  style={styles.camera}
+                  onBarcodeScanned={scanned ? undefined : handleBarCodeScanned}
+                />
+                {scanned && (
+                  <Button
+                    title={"Scan Again"}
+                    onPress={() => setScanned(false)}
+                    color="blue"
+                  />
+                )}
+              </View>
+              <View style={styles.buttonRow}>
+                <Pressable style={styles.primaryButton}>
+                  <Text style={styles.buttonText}>Camera</Text>
+                </Pressable>
+
+                <Pressable style={styles.secondaryButton}>
+                  <Text style={styles.buttonText}>Try Again</Text>
+                </Pressable>
+              </View>
+            </View>
+
+            {/* Bottom Portion */}
+            <View style={styles.bottomSection}>
+              <ScrollView
+                style={styles.scrollArea}
+                contentContainerStyle={styles.scrollContent}
+                showsVerticalScrollIndicator={false}
+              >
+                {items.map((item) => (
+                  <View key={item.id} style={styles.listRow}>
+                    <View style={styles.leftRowContent}>
+                      <Image
+                        source={{ uri: item.image }}
+                        style={styles.itemImage}
+                      />
+                      <Text style={styles.itemName}>{item.name}</Text>
+                    </View>
+
+                    <View style={styles.rowIcons}>
+                      <Pressable style={styles.rowIconBtn}>
+                        <Feather name="trash-2" size={20} color="black" />
+                      </Pressable>
+
+                      <Pressable style={styles.rowIconBtn}>
+                        <Feather name="zap" size={20} color="black" />
+                      </Pressable>
+
+                      <Pressable style={styles.rowIconBtn}>
+                        <Feather name="arrow-right" size={20} color="black" />
+                      </Pressable>
+                    </View>
+                  </View>
+                ))}
+              </ScrollView>
+            </View>
+          </View>
+        </View>
+      </SafeAreaView>
+    </SafeAreaProvider>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  safeArea: {
+    flex: 1,
+    backgroundColor: "white",
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  container: {
+    flex: 1,
+    backgroundColor: "white",
+    position: "relative",
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
+
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.15)",
+    zIndex: 5,
+  },
+
+  sideMenu: {
+    position: "absolute",
+    top: 0,
     bottom: 0,
-    left: 0,
-    position: 'absolute',
+    backgroundColor: "#f7f7f7",
+    zIndex: 10,
+    paddingTop: 30,
+    paddingHorizontal: 16,
+    borderRightWidth: 1,
+    borderRightColor: "#ddd",
+  },
+  menuTitle: {
+    // fontSize: 22,
+    // fontWeight: "700",
+    marginBottom: 20,
+  },
+  menuItem: {
+    paddingVertical: 14,
+  },
+  menuItemText: {
+    fontSize: 16,
+    color: "#222",
+  },
+
+  topNavbar: {
+    height: 60,
+    width: "100%",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#e8e8e8",
+    backgroundColor: "white",
+  },
+
+  camera: {
+    flex: 1,
+  },
+  iconBtn: {
+    width: 40,
+    alignItems: "flex-start",
+  },
+  logo: {
+    height: 40,
+    width: 120,
+  },
+  rightSpacer: {
+    width: 40,
+  },
+
+  mainSection: {
+    flex: 1,
+  },
+
+  topSection: {
+    flex: 4,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingTop: 50,
+    marginBottom: 20,
+  },
+  card: {
+    width: 225,
+    height: 250,
+    borderRadius: 22,
+    backgroundColor: "#b9ffcb",
+    borderWidth: 2,
+    borderColor: "#45ff54",
+    marginBottom: 18,
+  },
+  buttonRow: {
+    flexDirection: "row",
+    gap: 14,
+  },
+  primaryButton: {
+    backgroundColor: "#111",
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+  },
+  secondaryButton: {
+    backgroundColor: "#444",
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+  },
+  buttonText: {
+    color: "white",
+    fontWeight: "600",
+    fontSize: 15,
+  },
+
+  bottomSection: {
+    flex: 5,
+    paddingHorizontal: 12,
+    paddingTop: 14,
+    paddingBottom: 10,
+  },
+  scrollArea: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 18,
+    gap: 12,
+  },
+
+  listRow: {
+    height: 100,
+    width: "100%",
+    backgroundColor: "#fafafa",
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#e5e5e5",
+    paddingHorizontal: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  leftRowContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    flexShrink: 1,
+  },
+  itemImage: {
+    width: 62,
+    height: 62,
+    borderRadius: 12,
+    marginRight: 12,
+    backgroundColor: "#ddd",
+  },
+  itemName: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#111",
+    flexShrink: 1,
+  },
+  rowIcons: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  rowIconBtn: {
+    padding: 6,
+  },
+
+  bottomNavbar: {
+    height: 70,
+    borderTopWidth: 1,
+    borderTopColor: "#e8e8e8",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-around",
+    backgroundColor: "white",
+  },
+  bottomNavItem: {
+    padding: 8,
   },
 });

@@ -27,6 +27,13 @@
     },
     "plugins": [
       "expo-router",
+
+      [
+        "expo-camera",
+        {
+          "barcodeScannerEnabled": true
+        }
+      ],
       [
         "expo-splash-screen",
         {
