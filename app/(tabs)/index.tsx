@@ -1,5 +1,5 @@
 import { CameraView, useCameraPermissions } from "expo-camera";
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Button,
   Dimensions,
@@ -35,6 +35,42 @@ export default function HomeScreen() {
 
   const [permission, requestPermission] = useCameraPermissions();
 
+  const handleBarCodeScanned = ({
+    type,
+    data,
+  }: {
+    type: string;
+    data: string;
+  }) => {
+    setScanned(true);
+    setText(data);
+    console.log("Type: " + type + "\nData: " + data);
+    // Don't call setInfo here anymore
+  };
+
+  // Add this effect to handle the async scraping
+  useEffect(() => {
+    if (scanned && text !== "Not Yet scanned") {
+      const scrapeData = async () => {
+        const result = await handleScraping(text);
+        setInfo(result || ""); // Provide a default empty string if undefined
+      };
+      scrapeData();
+    }
+  }, [scanned, text]);
+
+  const items: ItemType[] = useMemo(
+    () => [
+      {
+        id: 1,
+        name: info,
+        image: "https://via.placeholder.com/70",
+      },
+    ],
+    [info], // Add 'info' to dependency array so it updates when info changes
+  );
+
+  // Check permissions AFTER all hooks are called
   if (!permission) {
     // Camera permissions are still loading.
     return <View />;
@@ -49,30 +85,6 @@ export default function HomeScreen() {
       </View>
     );
   }
-
-  const handleBarCodeScanned = ({
-    type,
-    data,
-  }: {
-    type: string;
-    data: string;
-  }) => {
-    setScanned(true);
-    setText(data);
-    console.log("Type: " + type + "\nData: " + data);
-    setInfo(handleScraping(data));
-  };
-  const items: ItemType[] = useMemo(
-    () => [
-      {
-        id: 1,
-        name: info,
-        image: "https://via.placeholder.com/70",
-      },
-    ],
-    [],
-  );
-
   return (
     <SafeAreaProvider>
       <SafeAreaView style={styles.safeArea}>
