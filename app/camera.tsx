@@ -136,7 +136,7 @@ async function main() {
       contents: prompt,
     });
     //Must store this now instead of console.log
-    alert(response.text);
+    console.log(response.text);
 
     } catch (error) {
       console.error(error);
