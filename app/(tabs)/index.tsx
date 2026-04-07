@@ -11,6 +11,10 @@ import {
   View,
 } from "react-native";
 import handleScraping from "./../../response";
+import { doc, setDoc } from "firebase/firestore";
+import { auth, db } from "../../firebase";
+import { updateDoc, arrayUnion } from "firebase/firestore";
+
 
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 
@@ -35,16 +39,26 @@ export default function HomeScreen() {
 
   const [permission, requestPermission] = useCameraPermissions();
 
-  const handleBarCodeScanned = ({
+  const handleBarCodeScanned = async ({
     type,
     data,
   }: {
     type: string;
     data: string;
   }) => {
+    const uid = auth.currentUser?.uid;
+    if (!uid) {
+  console.log("User not logged in");
+  return;
+}
     setScanned(true);
     setText(data);
+
+    await updateDoc(doc(db, "users", uid), {
+     storedItems: arrayUnion(text),
+     });
     console.log("Type: " + type + "\nData: " + data);
+
     // Don't call setInfo here anymore
   };
 
