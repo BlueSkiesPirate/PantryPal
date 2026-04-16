@@ -13,10 +13,17 @@ import { Camera, CameraView } from 'expo-camera';
 import { useEffect, useState } from "react";
 
 //ai component
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, ThinkingLevel } from "@google/genai";
 
+/* < CODE BREAK ? 
+
+//dotenv file 
+import * as dotenv from 'dotenv';
+dotenv.config();
+*/
 //pasing it into the ai
 let barcodeNumber = "brochacho";
+
 
 const Scanner = () => {
   //router for links
@@ -24,6 +31,12 @@ const Scanner = () => {
   //permisions and the scan data
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [scanData, setScanData] = useState(false);
+  
+  const [productInfo, setProductInfo] = useState<GoUpcAPIResponse | null>(null);
+  const [aiInfo, setAiInfo] = useState<String>("Nan");
+
+
+
   //sharing and using barcodenumber as a var in the text, since it'll change
 
   useEffect(() =>{
@@ -61,7 +74,8 @@ const Scanner = () => {
 
     //logic here to process the barcode number into the ai api
     barcodeNumber = data
-    // main();
+    getProductData();
+    main();
   };
 
   //pass it to ai, since it'll now have the barcode var saved
@@ -84,7 +98,8 @@ const Scanner = () => {
 
 //Barcode number
 const product_code: string = barcodeNumber;
-const go_upc_api_key: string = process.env.EXPO_PUBLIC_GO_UPC_KEY!;
+const go_upc_api_key: string =  "7b5a2f3c79f7514a10ee8e397831fea02a67a0809f3374cda0f00a7d65b04e9e"
+//process.env.EXPO_PUBLIC_GO_UPC_KEY;
 const api_base_url = 'https://go-upc.com/api/v1/code/';
 
 const url: string = api_base_url + product_code + '?key=' + go_upc_api_key;
@@ -101,11 +116,14 @@ async function getProductData(): Promise<GoUpcAPIResponse> {
     }
 
     const go_upc_data: GoUpcAPIResponse = await response.json();
+    setProductInfo(go_upc_data);
     return go_upc_data;
+
 }
 
 //Google section/gemini ai api section
-const google_api_key = process.env.EXPO_PUBLIC_GEMINI_KEY!;
+const google_api_key = "AIzaSyBSR9ING8185Q34Utl8siA2Acy7soIgTdE"
+//process.env.GEMINI_KEY
 
 //used to initialize the google ai sdk
 const ai = new GoogleGenAI({apiKey: google_api_key});
@@ -113,8 +131,12 @@ const ai = new GoogleGenAI({apiKey: google_api_key});
 //notes: not accurate. depending on how much info on product online
 async function main() {    
   try { 
+
+
+
     const productData = await getProductData();
           
+
     //Variables to store into the prompt for later usage
     const productName = productData.product.name;
     const productBrand = productData.product.brand;
@@ -132,36 +154,86 @@ async function main() {
       contents: prompt,
     });
     //Must store this now instead of console.log
-    console.log(response.text);
+    
+      
+      console.log(response.text);
+      if (response.text){
+        setAiInfo(response.text);
+      }
+    
 
     } catch (error) {
       console.error(error);
     }
 }
 
+
   return (
     <View style = {styles.container}>
+    
     <View style = {styles.cameraContainer}>
       <CameraView
         style = {StyleSheet.absoluteFillObject}
         barcodeScannerSettings={{ barcodeTypes: ["ean13", "qr", "ean8", "aztec", "upc_a", "upc_e", "codabar", "code39", "datamatrix", "itf14", "pdf417"],}} 
         onBarcodeScanned= {scanData? undefined:handleBarCodeScanned}
         />
-        {scanData && <Button 
-          title="Clck To Scan Again"
-          onPress={()=>setScanData(false)}
-          color="#241584"
-        /> }
+        
+        {/*we can add image  here, with ai summary, with other stuff; Only problem is the sizing
+        when there is too much text to show */ }
+        {scanData && (
+          <View style={styles.infoCard}>
+          <Text style={styles.title}>Product Information {"\n"} {productInfo?.product.name}
+          {"\n"} {aiInfo}
+
+
+          </Text>
+          <Text>`Barcode: {barcodeNumber} \n 
+            
+            </Text> 
+
+
+
+          <Button title="Click To Scan Again"
+          onPress={() => setScanData(false)}
+          color="#241584"/>
+          </View>
+          )
+        }
+
         <Button title="barcode test" onPress={barcodeAlert} />
         <Button title="ai summary" onPress= {main}/>
-        
       </View>
+      
+      
     </View>
 
   );
 }
 
 const styles = StyleSheet.create ({
+infoCard: {
+    position: 'absolute',
+    bottom: 20,       
+  
+    // Ideally make it responsive to screen size, but wtv for now
+    width: '75%',         
+    height: '80%',        
+  
+    alignSelf: 'center',  
+    
+    backgroundColor: 'white',
+    borderRadius: 20,
+    padding: 20,
+    
+    //This makes it look better infront of camera (I dont see a diff)
+    
+    elevation: 10,        // Android
+    shadowColor: '#000',  // iOS
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+  },
+
   container: {
     flex: 1,
     flexDirection: 'row',
@@ -173,6 +245,17 @@ const styles = StyleSheet.create ({
     width: 500,  
     height: 500, 
     overflow: 'hidden',
+  },
+  overlay: {
+    position: 'absolute',
+    width: '80%',
+    height: '60%',
+    backgroundColor: 'white',
+    opacity: 0.7,
+    top: '20%',
+    left: '10%',
+    borderWidth: 2,
+    borderColor: '#241584',
   },
   images: {
     width: 100,
