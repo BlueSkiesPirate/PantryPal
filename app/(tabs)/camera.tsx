@@ -13,11 +13,7 @@ import { Camera, CameraView } from 'expo-camera';
 import { useEffect, useState } from "react";
 
 //ai component
-import { GoogleGenAI, ThinkingLevel } from "@google/genai";
-
-//dotenv file 
-import * as dotenv from 'dotenv';
-dotenv.config();
+import { GoogleGenAI } from "@google/genai";
 
 //pasing it into the ai
 let barcodeNumber = "brochacho";
@@ -39,7 +35,6 @@ const Scanner = () => {
         const {status} = await Camera.requestCameraPermissionsAsync();
         setHasPermission(status === 'granted');
       }
-
     })();
   }, [] );
 
@@ -75,6 +70,7 @@ const Scanner = () => {
     //functionality of the ai
   };
 
+  //Generic intrerface. Getting the name, brand, and category most important. Description and image for later usage
   interface GoUpcAPIResponse {
     product: {
         name: string;
@@ -88,7 +84,7 @@ const Scanner = () => {
 
 //Barcode number
 const product_code: string = barcodeNumber;
-const go_upc_api_key: string = process.env.GO_UPC_KEY;
+const go_upc_api_key: string = process.env.EXPO_PUBLIC_GO_UPC_KEY!;
 const api_base_url = 'https://go-upc.com/api/v1/code/';
 
 const url: string = api_base_url + product_code + '?key=' + go_upc_api_key;
@@ -109,7 +105,7 @@ async function getProductData(): Promise<GoUpcAPIResponse> {
 }
 
 //Google section/gemini ai api section
-const google_api_key = process.env.GEMINI_KEY
+const google_api_key = process.env.EXPO_PUBLIC_GEMINI_KEY!;
 
 //used to initialize the google ai sdk
 const ai = new GoogleGenAI({apiKey: google_api_key});
@@ -157,10 +153,9 @@ async function main() {
           color="#241584"
         /> }
         <Button title="barcode test" onPress={barcodeAlert} />
+        <Button title="ai summary" onPress= {main}/>
         
       </View>
-      
-      <Button title="ai summary" onPress= {main}/>
     </View>
 
   );
