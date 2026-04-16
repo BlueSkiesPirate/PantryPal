@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import React, { useMemo, useRef, useState } from "react";
 import {
   Animated,
@@ -12,7 +13,6 @@ import {
   View,
 } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
-
 type ExpiryStatus = "fresh" | "soon" | "urgent";
 
 type PantryItem = {
@@ -250,6 +250,7 @@ export default function PantryScreen() {
   const [selectedItem, setSelectedItem] = useState<PantryItem | null>(null);
   const [isDetailVisible, setIsDetailVisible] = useState(false);
   const slideAnim = useRef(new Animated.Value(320)).current;
+  const router = useRouter();
 
   const openDetail = (item: PantryItem) => {
     setSelectedItem(item);
@@ -306,7 +307,10 @@ export default function PantryScreen() {
                 <TouchableOpacity style={styles.iconButton}>
                   <Ionicons name="person-outline" size={22} color="#111" />
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.iconButton}>
+                <TouchableOpacity
+                  onPress={() => router.navigate("/wishlist")}
+                  style={styles.iconButton}
+                >
                   <Ionicons name="basket-outline" size={22} color="#111" />
                 </TouchableOpacity>
               </View>
