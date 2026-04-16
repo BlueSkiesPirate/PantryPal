@@ -1,13 +1,14 @@
-import { CameraView, useCameraPermissions } from "expo-camera";
+import { Camera, CameraView, useCameraPermissions } from "expo-camera";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   Button,
   Dimensions,
   Image,
+  Platform,
+  Text,
   Pressable,
   ScrollView,
   StyleSheet,
-  Text,
   View,
 } from "react-native";
 import handleScraping from "./../../response";
@@ -38,9 +39,10 @@ export default function HomeScreen() {
   // const [text, setText] = useState("Not Yet scanned");
   let [info, setInfo] = useState("");
 
-  // const [hasPermission, setHasPermission] = useState<boolean | null>(null);
+  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [scanData, setScanData] = useState(false);
-  
+  const [aiData, setAIResponse] = useState(String);
+
   // const [permission, requestPermission] = useCameraPermissions();
 
   const handleBarCodeScanned = ({ type, data }: { type: any; data: any }) => {
@@ -59,6 +61,28 @@ export default function HomeScreen() {
     //functionality of the ai
   };
 
+  useEffect(() =>{
+    //Request perms for the camera
+    (async() => {
+      if (Platform.OS ==="web") {
+        setHasPermission(true);
+      } else {
+        const {status} = await Camera.requestCameraPermissionsAsync();
+        setHasPermission(status === 'granted');
+      }
+    })();
+  }, [] );
+
+  
+  if (!hasPermission) {
+    return (
+      <View style = {styles.container}>
+        <Text> Grant permisision to the app</Text>
+      </View>
+    )
+  }
+
+  //Setup some stuff if you want to pull into the item/call it
   interface GoUpcAPIResponse {
     product: {
       name: string;
@@ -98,8 +122,11 @@ export default function HomeScreen() {
   //used to initialize the google ai sdk
   const ai = new GoogleGenerativeAI(google_api_key);
 
-  //notes: not accurate. depending on how much info on product online
-  async function main() {
+
+  // const [loading, setLoading] = useState(true);
+  let responseStorage = "testinging";
+
+  async function AiResponse() {
     try {
       const productData = await getProductData();
 
@@ -117,7 +144,9 @@ export default function HomeScreen() {
       const model = ai.getGenerativeModel({ model: "gemini-1.5-flash" });
       const result = await model.generateContent(prompt);
       //Must store this now instead of console.log
-      console.log(result.response.text());
+      let responseStorage: string = result.response.text();
+      setAIResponse(responseStorage);
+     
     } catch (error) {
       console.error(error);
     }
@@ -133,22 +162,6 @@ export default function HomeScreen() {
     ],
     [info], // Add 'info' to dependency array so it updates when info changes
   );
-
-  // // Check permissions AFTER all hooks are called
-  // if (!permission) {
-  //   // Camera permissions are still loading.
-  //   return <View />;
-  // }
-
-  // if (!permission.granted) {
-  //   // Camera permissions are not granted yet.
-  //   return (
-  //     <View>
-  //       <Text>We need your permission to show the camera</Text>
-  //       <Button onPress={requestPermission} title="grant permission" />
-  //     </View>
-  //   );
-  // }
 
   return (
     <SafeAreaProvider>
@@ -230,7 +243,7 @@ export default function HomeScreen() {
                             color="#241584"
                           />
                         )}
-                        <Button title="ai summary" onPress={main} />
+                        <Button title="ai summary" onPress={AiResponse} />
                         <Button title="barcode test" onPress={barcodeAlert} />
                       </View>
                     </View>
@@ -266,7 +279,7 @@ export default function HomeScreen() {
                       </Pressable>
                     </View>
                   </View>
-                ))} */}
+                ))}
               </ScrollView>
             </View>
           </View>
