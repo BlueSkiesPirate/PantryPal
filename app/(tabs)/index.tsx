@@ -1,5 +1,5 @@
-import { CameraView, useCameraPermissions } from "expo-camera";
-import React, { useEffect, useMemo, useState } from "react";
+import { CameraView } from "expo-camera";
+import React, { useMemo, useState } from "react";
 import {
   Button,
   Dimensions,
@@ -10,14 +10,12 @@ import {
   Text,
   View,
 } from "react-native";
-import handleScraping from "./../../response";
 
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 
 import { Feather } from "@expo/vector-icons";
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
-
 
 const { width, height } = Dimensions.get("window");
 const MENU_WIDTH = width / 3;
@@ -40,7 +38,7 @@ export default function HomeScreen() {
 
   // const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [scanData, setScanData] = useState(false);
-  
+
   // const [permission, requestPermission] = useCameraPermissions();
 
   const handleBarCodeScanned = ({ type, data }: { type: any; data: any }) => {
@@ -205,35 +203,35 @@ export default function HomeScreen() {
             <View style={styles.topSection}>
               <View style={styles.card}>
                 <CameraView
-                          style={StyleSheet.absoluteFillObject}
-                          barcodeScannerSettings={{
-                            barcodeTypes: [
-                              "ean13",
-                              "qr",
-                              "ean8",
-                              "aztec",
-                              "upc_a",
-                              "upc_e",
-                              "codabar",
-                              "code39",
-                              "datamatrix",
-                              "itf14",
-                              "pdf417",
-                            ],
-                          }}
-                          onBarcodeScanned={scanData ? undefined : handleBarCodeScanned}
-                        />
-                        {scanData && (
-                          <Button
-                            title="Clck To Scan Again"
-                            onPress={() => setScanData(false)}
-                            color="#241584"
-                          />
-                        )}
-                        <Button title="ai summary" onPress={main} />
-                        <Button title="barcode test" onPress={barcodeAlert} />
-                      </View>
-                    </View>
+                  style={StyleSheet.absoluteFillObject}
+                  barcodeScannerSettings={{
+                    barcodeTypes: [
+                      "ean13",
+                      "qr",
+                      "ean8",
+                      "aztec",
+                      "upc_a",
+                      "upc_e",
+                      "codabar",
+                      "code39",
+                      "datamatrix",
+                      "itf14",
+                      "pdf417",
+                    ],
+                  }}
+                  onBarcodeScanned={scanData ? undefined : handleBarCodeScanned}
+                />
+                {scanData && (
+                  <Button
+                    title="Clck To Scan Again"
+                    onPress={() => setScanData(false)}
+                    color="#241584"
+                  />
+                )}
+                <Button title="ai summary" onPress={main} />
+                <Button title="barcode test" onPress={barcodeAlert} />
+              </View>
+            </View>
 
             {/* Bottom Portion */}
             <View style={styles.bottomSection}>
@@ -242,7 +240,7 @@ export default function HomeScreen() {
                 contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
               >
-                {items.map((item) => ( 
+                {items.map((item) => (
                   <View key={item.id} style={styles.listRow}>
                     <View style={styles.leftRowContent}>
                       <Image
@@ -266,7 +264,7 @@ export default function HomeScreen() {
                       </Pressable>
                     </View>
                   </View>
-                ))} */}
+                ))}
               </ScrollView>
             </View>
           </View>
