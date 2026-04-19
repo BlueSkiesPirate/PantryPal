@@ -29,7 +29,7 @@ type ItemType = {
   image: string;
 };
 
-let barcodeNumber = "brochacho";
+let barcodeNumber = "";
 
 export default function HomeScreen() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -41,8 +41,10 @@ export default function HomeScreen() {
 
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [scanData, setScanData] = useState(false);
-  const [aiData, setAIResponse] = useState(String);
 
+  //AI features
+  const [aiData, setAIResponse] = useState("");
+  const [message, setMessage] = useState(false);
   // const [permission, requestPermission] = useCameraPermissions();
 
   const handleBarCodeScanned = ({ type, data }: { type: any; data: any }) => {
@@ -94,17 +96,20 @@ export default function HomeScreen() {
     barcodeUrl: string;
   }
 
-  //Barcode number
-  const product_code: string = barcodeNumber;
-  const go_upc_api_key: string = process.env.EXPO_PUBLIC_GO_UPC_KEY!;
-  const api_base_url = "https://go-upc.com/api/v1/code/";
 
-  const url: string = api_base_url + product_code + "?key=" + go_upc_api_key;
 
   //Returns the entire interface. e.g. use .name to retrieve it.
   //If it doesnt exist, it needs to be able to say that it doesnt exist in the database
   //Will require multiple ai calls then
-  async function getProductData(): Promise<GoUpcAPIResponse> {
+  const getProductData = async () => {
+    //Barcode number
+    const product_code: string = barcodeNumber
+    const go_upc_api_key: string = process.env.EXPO_PUBLIC_GO_UPC_KEY!
+    const api_base_url = "https://go-upc.com/api/v1/code/"
+
+    const url: string = api_base_url + product_code + "?key=" + go_upc_api_key
+    
+    console.log(url); 
     const response = await fetch(url);
 
     //checking if information is retrieved, if not error.
@@ -112,6 +117,7 @@ export default function HomeScreen() {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
+    //Might be able to cut out the middle man
     const go_upc_data: GoUpcAPIResponse = await response.json();
     return go_upc_data;
   }
@@ -123,10 +129,7 @@ export default function HomeScreen() {
   const ai = new GoogleGenerativeAI(google_api_key);
 
 
-  // const [loading, setLoading] = useState(true);
-  let responseStorage = "testinging";
-
-  async function AiResponse() {
+  const AiResponse = async() =>{
     try {
       const productData = await getProductData();
 
@@ -141,15 +144,15 @@ export default function HomeScreen() {
       `;
 
       //Will need a way to go through the response to format the text accordingly.
-      const model = ai.getGenerativeModel({ model: "gemini-1.5-flash" });
+      const model = ai.getGenerativeModel({ model: "gemini-3-flash-preview" });
       const result = await model.generateContent(prompt);
       //Must store this now instead of console.log
-      let responseStorage: string = result.response.text();
-      setAIResponse(responseStorage);
-     
+      const response: string = result.response.text();
+      setAIResponse(response);
     } catch (error) {
       console.error(error);
-    }
+      
+    } 
   }
 
   const items: ItemType[] = useMemo(
@@ -218,23 +221,23 @@ export default function HomeScreen() {
             <View style={styles.topSection}>
               <View style={styles.card}>
                 <CameraView
-                          style={StyleSheet.absoluteFillObject}
-                          barcodeScannerSettings={{
-                            barcodeTypes: [
-                              "ean13",
-                              "qr",
-                              "ean8",
-                              "aztec",
-                              "upc_a",
-                              "upc_e",
-                              "codabar",
-                              "code39",
-                              "datamatrix",
-                              "itf14",
-                              "pdf417",
-                            ],
-                          }}
-                          onBarcodeScanned={scanData ? undefined : handleBarCodeScanned}
+                  style={StyleSheet.absoluteFillObject}
+                  barcodeScannerSettings={{
+                    barcodeTypes: [
+                      "ean13",
+                      "qr",
+                      "ean8",
+                      "aztec",
+                      "upc_a",
+                      "upc_e",
+                      "codabar",
+                      "code39",
+                      "datamatrix",
+                      "itf14",
+                      "pdf417",
+                    ],
+                  }}
+                    onBarcodeScanned={scanData ? undefined : handleBarCodeScanned}
                         />
                         {scanData && (
                           <Button
@@ -243,9 +246,10 @@ export default function HomeScreen() {
                             color="#241584"
                           />
                         )}
-                        <Button title="ai summary" onPress={AiResponse} />
                         <Button title="barcode test" onPress={barcodeAlert} />
                       </View>
+                     <Button title={message ? "Loading..." : "Get Data"} disabled={message} onPress={AiResponse} />
+                        <Text>{aiData}</Text>
                     </View>
 
             {/* Bottom Portion */}
