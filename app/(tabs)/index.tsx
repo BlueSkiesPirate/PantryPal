@@ -1,5 +1,5 @@
-import { Camera, CameraView, useCameraPermissions } from "expo-camera";
-import React, { useEffect, useMemo, useState } from "react";
+import { Camera, CameraView } from "expo-camera";
+import React, { useMemo, useState, useEffect } from "react";
 import {
   Button,
   Dimensions,
@@ -11,14 +11,12 @@ import {
   StyleSheet,
   View,
 } from "react-native";
-import handleScraping from "./../../response";
 
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 
 import { Feather } from "@expo/vector-icons";
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
-
 
 const { width, height } = Dimensions.get("window");
 const MENU_WIDTH = width / 3;
@@ -114,7 +112,7 @@ export default function HomeScreen() {
 
     //checking if information is retrieved, if not error.
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      throw new Error(`HTTP error for go-upc! status: ${response.status}`);
     }
 
     //Might be able to cut out the middle man
@@ -259,7 +257,7 @@ export default function HomeScreen() {
                 contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
               >
-                {items.map((item) => ( 
+                {items.map((item) => (
                   <View key={item.id} style={styles.listRow}>
                     <View style={styles.leftRowContent}>
                       <Image
