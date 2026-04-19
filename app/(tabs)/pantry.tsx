@@ -304,6 +304,14 @@ export default function PantryScreen() {
               <Text style={styles.headerTitle}>My pantry</Text>
 
               <View style={styles.headerIcons}>
+                <TouchableOpacity
+                  onPress={() => router.navigate("/expirationWarningPage")}
+                  style={styles.warningsButton}
+                >
+                  <Text style={styles.warningText}>
+                    {"("}6{")"} items!
+                  </Text>
+                </TouchableOpacity>
                 <TouchableOpacity style={styles.iconButton}>
                   <Ionicons name="person-outline" size={22} color="#111" />
                 </TouchableOpacity>
@@ -434,6 +442,16 @@ const styles = StyleSheet.create({
     fontSize: 29,
     fontWeight: "500",
     color: "#111",
+  },
+
+  warningsButton: {
+    backgroundColor: "#FE6C6C",
+    borderRadius: 20,
+    padding: 5,
+  },
+
+  warningText: {
+    color: "white",
   },
   headerIcons: {
     flexDirection: "row",

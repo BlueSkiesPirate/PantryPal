@@ -52,6 +52,9 @@ export default function WishlistScreen() {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
+          <TouchableOpacity style={styles.profileButton}>
+            <Ionicons name="person-outline" size={24} color="#111" />
+          </TouchableOpacity>
           <View style={styles.container}>
             <View style={styles.headerRow}>
               <View style={styles.banner}>
@@ -67,10 +70,6 @@ export default function WishlistScreen() {
                   <View style={styles.fruitGreen} />
                 </View>
               </View>
-
-              <TouchableOpacity style={styles.profileButton}>
-                <Ionicons name="person-outline" size={24} color="#111" />
-              </TouchableOpacity>
             </View>
 
             <View style={styles.infoRow}>
