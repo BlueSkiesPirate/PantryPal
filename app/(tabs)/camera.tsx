@@ -15,14 +15,11 @@ import { useEffect, useState } from "react";
 //ai component
 import { GoogleGenAI, ThinkingLevel } from "@google/genai";
 
-/* < CODE BREAK ? 
+import { addData } from "../Add2DB";  
 
-//dotenv file 
-import * as dotenv from 'dotenv';
-dotenv.config();
-*/
+
 //pasing it into the ai
-let barcodeNumber = "brochacho";
+let barcodeNumber = "075720000302";
 
 
 const Scanner = () => {
@@ -80,7 +77,29 @@ const Scanner = () => {
 
   //pass it to ai, since it'll now have the barcode var saved
   const barcodeAlert = () => {
-    alert("Accessed barcode data: " + barcodeNumber);
+
+    const placeholderData = `{
+  "product": {
+    "productName": "Poland Spring Sparkling Lime Flavor Water",
+    "productBrand": "Poland Spring",
+    "image": "https://go-upc.s3.amazonaws.com/images/72993418.jpeg",
+    "ingredients": [
+      "Carbonated Spring Water",
+      "Natural Flavors"
+    ],
+    "allergies": [],
+    "recylabilitySteps": [
+      "Empty and rinse the bottle.",
+      "Replace the cap on the bottle.",
+      "Place the bottle in your local plastic recycling bin."
+    ]
+  }
+}`
+
+    addData('products',barcodeNumber, JSON.parse( placeholderData));
+
+
+    //alert("Accessed barcode data: " + barcodeNumber);
     //functionality of the ai
   };
 
@@ -98,8 +117,7 @@ const Scanner = () => {
 
 //Barcode number
 const product_code: string = barcodeNumber;
-const go_upc_api_key: string =  "7b5a2f3c79f7514a10ee8e397831fea02a67a0809f3374cda0f00a7d65b04e9e"
-//process.env.EXPO_PUBLIC_GO_UPC_KEY;
+const go_upc_api_key: string =process.env.EXPO_PUBLIC_GO_UPC_KEY;
 const api_base_url = 'https://go-upc.com/api/v1/code/';
 
 const url: string = api_base_url + product_code + '?key=' + go_upc_api_key;
@@ -122,8 +140,7 @@ async function getProductData(): Promise<GoUpcAPIResponse> {
 }
 
 //Google section/gemini ai api section
-const google_api_key = "AIzaSyBSR9ING8185Q34Utl8siA2Acy7soIgTdE"
-//process.env.GEMINI_KEY
+const google_api_key = process.env.EXPO_PUBLIC_GEMINI_KEY;
 
 //used to initialize the google ai sdk
 const ai = new GoogleGenAI({apiKey: google_api_key});
@@ -131,7 +148,9 @@ const ai = new GoogleGenAI({apiKey: google_api_key});
 //notes: not accurate. depending on how much info on product online
 async function main() {    
   try { 
-
+//-------FOR TESTING; REMOVE LATER-------
+setScanData(true);
+//----------
 
 
     const productData = await getProductData();
@@ -141,15 +160,25 @@ async function main() {
     const productName = productData.product.name;
     const productBrand = productData.product.brand;
     const productCategory = productData.product.category;
+    const imageUrl = productData.product.imageUrl;
 
-    const prompt = 
-    `Based off of ${productName}, ${productBrand}, ${productCategory} and barcode of ${barcodeNumber}, 
-    list the in the following categories line on a single line and create a new line for each category for: product name, nutrient label information, ingredients, allergies, and recylability steps. 
-    Be simple, do not include any unecessary details.
-    `
+    const prompt = `Based off of ${productName}, ${productBrand}, ${productCategory}, ${imageUrl} and barcode of ${barcodeNumber}, convert it into a JSON object with the following structure. 
+    You can elaborate on the recyability stpes if necessary but, be simple. 
+    Don't respond with anything except the JSON object:
+{
+"product": {
+"productName": $productName,
+"productBrand": $productBrand,
+"image": $imageUrl, //
+"ingredients": [],
+"allergies": [],
+"recylabilitySteps": [],
+},
+}`
     //Will need a way to go through the resposne to format the text accoridngly.
     const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
+      //model: "gemini-3-flash-preview",
+      model: "gemini-3.1-flash-lite-preview",
       //Will just pass the information on barcode into here. Specifically, name, manufactuter, and barcode.
       contents: prompt,
     });
@@ -159,6 +188,9 @@ async function main() {
       console.log(response.text);
       if (response.text){
         setAiInfo(response.text);
+
+        addData('products',barcodeNumber,JSON.parse(response.text));
+
       }
     
 
@@ -180,22 +212,22 @@ async function main() {
         
         {/*we can add image  here, with ai summary, with other stuff; Only problem is the sizing
         when there is too much text to show */ }
-        {scanData && (
+        
+        {scanData &&  (
           <View style={styles.infoCard}>
-          <Text style={styles.title}>Product Information {"\n"} {productInfo?.product.name}
-          {"\n"} {aiInfo}
+          
+          <View style={styles.closeButton}>
+            <Button title="X" onPress={() => setScanData(false)} color="#d61010"/>
+          </View>
+
+          <Text style={styles.title}>Product Information {"\n"} {aiInfo}</Text>
 
 
-          </Text>
-          <Text>`Barcode: {barcodeNumber} \n 
-            
-            </Text> 
 
 
 
-          <Button title="Click To Scan Again"
-          onPress={() => setScanData(false)}
-          color="#241584"/>
+
+          
           </View>
           )
         }
@@ -232,6 +264,16 @@ infoCard: {
     shadowOffset: { width: 0, height: 5 },
     shadowOpacity: 0.3,
     shadowRadius: 10,
+  },
+  closeButton: {
+    position: 'absolute',
+    top: 15,
+    right: 15,
+    width: 30,
+    height: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1, // Ensures it stays on top of other content
   },
 
   container: {
