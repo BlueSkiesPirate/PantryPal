@@ -3,7 +3,7 @@ import { View, Text, TextInput, Button } from "react-native";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
 import { auth, db } from "../firebase";
-import { router } from "expo-router";
+import { Link, router } from "expo-router";
 
 export default function Register() {
   const [email, setEmail] = useState("");
@@ -80,6 +80,9 @@ export default function Register() {
       />
 
       <Button title="Register" onPress={register} />
+            <Link href="/login">
+              <Text style={{ color: "blue" }}>Already have an account? Log In Here</Text>
+            </Link>
     </View>
   );
 }

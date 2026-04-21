@@ -11,9 +11,10 @@ import {
   View,
 } from "react-native";
 import handleScraping from "./../../response";
-import { doc, setDoc } from "firebase/firestore";
+import { doc, setDoc, getDoc } from "firebase/firestore";
 import { auth, db } from "../../firebase";
 import { updateDoc, arrayUnion } from "firebase/firestore";
+import {getUserProfile} from "../../scripts/firebaseHelpers";
 
 
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
@@ -35,9 +36,17 @@ export default function HomeScreen() {
   // const [hasPermission, setHasPermission] = useState(null);
   const [scanned, setScanned] = useState(false);
   const [text, setText] = useState("Not Yet scanned");
+  const [profile, setProfile] = useState(null);
   let [info, setInfo] = useState("");
 
   const [permission, requestPermission] = useCameraPermissions();
+
+  const loadProfile = async () => {
+  const data = await getUserProfile();
+  setProfile(data);
+  console.log("Loaded profile:", data);
+};
+
 
   const handleBarCodeScanned = async ({
     type,
@@ -173,6 +182,21 @@ export default function HomeScreen() {
                 <Pressable style={styles.secondaryButton}>
                   <Text style={styles.buttonText}>Try Again</Text>
                 </Pressable>
+
+                <Pressable style={styles.menuItem} onPress={loadProfile}>
+                  <Text style={styles.menuItemText}>Show Profile</Text>
+                </Pressable>
+                {profile && (
+                  <View style={{ padding: 10 }}>
+                    <Text style={{ fontSize: 16, fontWeight: "bold" }}>User Profile</Text>
+                    <Text>Email: {profile.email}</Text>
+                    <Text>Allergies: {profile.allergies?.join(", ")}</Text>
+                    <Text>Restrictions: {profile.restrictions?.join(", ")}</Text>
+                    <Text>Calories Goal: {profile.nutritionGoals?.calories}</Text>
+                  </View>
+                )}
+
+
               </View>
             </View>
 
@@ -207,6 +231,7 @@ export default function HomeScreen() {
                       </Pressable>
                     </View>
                   </View>
+                  
                 ))}
               </ScrollView>
             </View>
