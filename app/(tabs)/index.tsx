@@ -18,6 +18,10 @@ import { Feather } from "@expo/vector-icons";
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
+import {getUserProfile, deleteStoredItems, addStoredItem} from "../../scripts/firebaseHelpers";
+
+import { auth } from "../../firebase";
+
 const { width, height } = Dimensions.get("window");
 const MENU_WIDTH = width / 3;
 
@@ -53,6 +57,7 @@ export default function HomeScreen() {
 
     //logic here to process the barcode number into the ai api
     barcodeNumber = data;
+    
   };
 
   //pass it to ai, since it'll now have the barcode var saved
@@ -128,18 +133,34 @@ export default function HomeScreen() {
 
 
   const AiResponse = async() =>{
+    const user = auth.currentUser;
+    if (!user){
+      console.log("Not logged in, cant fetch profile.");
+      return;
+    }
+
     try {
       const productData = await getProductData();
 
       //Variables to store into the prompt for later usage
       const productName = productData.product.name;
-      const productBrand = productData.product.brand;
-      const productCategory = productData.product.category;
+    const productBrand = productData.product.brand;
+    const productCategory = productData.product.category;
+    const imageUrl = productData.product.imageUrl;
 
-      const prompt = `Based off of ${productName}, ${productBrand}, ${productCategory} and barcode of ${barcodeNumber}, 
-      list the in the following categories line on a single line and create a new line for each category for: product name, nutrient label information, ingredients, allergies, and recyclability steps. 
-      Be simple, do not include any unnecessary details.
-      `;
+    const prompt = `Based off of ${productName}, ${productBrand}, ${productCategory}, ${imageUrl} and barcode of ${barcodeNumber}, convert it into a JSON object with the following structure. 
+    You can elaborate on the recyability stpes if necessary but, be simple. 
+    Don't respond with anything except the JSON object:
+{
+"product": {
+"productName": $productName,
+"productBrand": $productBrand,
+"image": $imageUrl, //
+"ingredients": [],
+"allergies": [],
+"recylabilitySteps": [],
+},
+}`
 
       //Will need a way to go through the response to format the text accordingly.
       const model = ai.getGenerativeModel({ model: "gemini-3-flash-preview" });
@@ -147,6 +168,12 @@ export default function HomeScreen() {
       //Must store this now instead of console.log
       const response: string = result.response.text();
       setAIResponse(response);
+
+
+      await addStoredItem(barcodeNumber, response);
+
+
+
     } catch (error) {
       console.error(error);
       
