@@ -1,26 +1,31 @@
-import { CameraView, useCameraPermissions } from "expo-camera";
-import React, { useEffect, useMemo, useState } from "react";
+import { Camera, CameraView } from "expo-camera";
+import React, { useMemo, useState, useEffect } from "react";
 import {
   Button,
   Dimensions,
   Image,
+  Platform,
+  Text,
   Pressable,
   ScrollView,
   StyleSheet,
-  Text,
   View,
 } from "react-native";
+<<<<<<< HEAD
 import handleScraping from "./../../response";
 import { doc, setDoc, getDoc } from "firebase/firestore";
 import { auth, db } from "../../firebase";
 import { updateDoc, arrayUnion } from "firebase/firestore";
 import {getUserProfile, deleteStoredItems} from "../../scripts/firebaseHelpers";
 
+=======
+>>>>>>> origin/react-native
 
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 
 import { Feather } from "@expo/vector-icons";
 
+<<<<<<< HEAD
 try {
 const products = await getUserProfile();
 console.log("products:", products);
@@ -30,6 +35,9 @@ console.log("products:", products);
 }
 
 
+=======
+import { GoogleGenerativeAI } from "@google/generative-ai";
+>>>>>>> origin/react-native
 
 const { width, height } = Dimensions.get("window");
 const MENU_WIDTH = width / 3;
@@ -40,17 +48,26 @@ type ItemType = {
   image: string;
 };
 
+let barcodeNumber = "";
+
 export default function HomeScreen() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   // const [hasPermission, setHasPermission] = useState(null);
+<<<<<<< HEAD
   const [scanned, setScanned] = useState(false);
   const [text, setText] = useState("Not Yet scanned");
   const [profile, setProfile] = useState(null);
+=======
+  // const [scanned, setScanned] = useState(false);
+  // const [text, setText] = useState("Not Yet scanned");
+>>>>>>> origin/react-native
   let [info, setInfo] = useState("");
 
-  const [permission, requestPermission] = useCameraPermissions();
+  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
+  const [scanData, setScanData] = useState(false);
 
+<<<<<<< HEAD
   const loadProfile = async () => {
   const data = await getUserProfile();
   setProfile(data);
@@ -79,18 +96,120 @@ export default function HomeScreen() {
     console.log("Type: " + type + "\nData: " + data);
 
     // Don't call setInfo here anymore
+=======
+  //AI features
+  const [aiData, setAIResponse] = useState("");
+  const [message, setMessage] = useState(false);
+  // const [permission, requestPermission] = useCameraPermissions();
+
+  const handleBarCodeScanned = ({ type, data }: { type: any; data: any }) => {
+    setScanData(true);
+
+    console.log("Type: " + type);
+    console.log("Data: " + data);
+
+    //logic here to process the barcode number into the ai api
+    barcodeNumber = data;
+>>>>>>> origin/react-native
   };
 
-  // Add this effect to handle the async scraping
-  useEffect(() => {
-    if (scanned && text !== "Not Yet scanned") {
-      const scrapeData = async () => {
-        const result = await handleScraping(text);
-        setInfo(result || ""); // Provide a default empty string if undefined
-      };
-      scrapeData();
+  //pass it to ai, since it'll now have the barcode var saved
+  const barcodeAlert = () => {
+    alert("Accessed barcode data: " + barcodeNumber);
+    //functionality of the ai
+  };
+
+  useEffect(() =>{
+    //Request perms for the camera
+    (async() => {
+      if (Platform.OS ==="web") {
+        setHasPermission(true);
+      } else {
+        const {status} = await Camera.requestCameraPermissionsAsync();
+        setHasPermission(status === 'granted');
+      }
+    })();
+  }, [] );
+
+  
+  if (!hasPermission) {
+    return (
+      <View style = {styles.container}>
+        <Text> Grant permisision to the app</Text>
+      </View>
+    )
+  }
+
+  //Setup some stuff if you want to pull into the item/call it
+  interface GoUpcAPIResponse {
+    product: {
+      name: string;
+      description: string;
+      imageUrl: string;
+      brand?: string;
+      category?: string;
+    };
+    barcodeUrl: string;
+  }
+
+
+
+  //Returns the entire interface. e.g. use .name to retrieve it.
+  //If it doesnt exist, it needs to be able to say that it doesnt exist in the database
+  //Will require multiple ai calls then
+  const getProductData = async () => {
+    //Barcode number
+    const product_code: string = barcodeNumber
+    const go_upc_api_key: string = process.env.EXPO_PUBLIC_GO_UPC_KEY!
+    const api_base_url = "https://go-upc.com/api/v1/code/"
+
+    const url: string = api_base_url + product_code + "?key=" + go_upc_api_key
+    
+    console.log(url); 
+    const response = await fetch(url);
+
+    //checking if information is retrieved, if not error.
+    if (!response.ok) {
+      throw new Error(`HTTP error for go-upc! status: ${response.status}`);
     }
-  }, [scanned, text]);
+
+    //Might be able to cut out the middle man
+    const go_upc_data: GoUpcAPIResponse = await response.json();
+    return go_upc_data;
+  }
+
+  //Google section/gemini ai api section
+  const google_api_key = process.env.EXPO_PUBLIC_GEMINI_KEY!;
+
+  //used to initialize the google ai sdk
+  const ai = new GoogleGenerativeAI(google_api_key);
+
+
+  const AiResponse = async() =>{
+    try {
+      const productData = await getProductData();
+
+      //Variables to store into the prompt for later usage
+      const productName = productData.product.name;
+      const productBrand = productData.product.brand;
+      const productCategory = productData.product.category;
+
+      const prompt = `Based off of ${productName}, ${productBrand}, ${productCategory} and barcode of ${barcodeNumber}, 
+      list the in the following categories line on a single line and create a new line for each category for: product name, nutrient label information, ingredients, allergies, and recyclability steps. 
+      Be simple, do not include any unnecessary details.
+      `;
+
+      //Will need a way to go through the response to format the text accordingly.
+      const model = ai.getGenerativeModel({ model: "gemini-3-flash-preview" });
+      const result = await model.generateContent(prompt);
+      //Must store this now instead of console.log
+      const response: string = result.response.text();
+      setAIResponse(response);
+    } catch (error) {
+      console.error(error);
+      
+    } 
+  }
 
   const items: ItemType[] = useMemo(
     () => [
@@ -103,21 +222,6 @@ export default function HomeScreen() {
     [info], // Add 'info' to dependency array so it updates when info changes
   );
 
-  // Check permissions AFTER all hooks are called
-  if (!permission) {
-    // Camera permissions are still loading.
-    return <View />;
-  }
-
-  if (!permission.granted) {
-    // Camera permissions are not granted yet.
-    return (
-      <View>
-        <Text>We need your permission to show the camera</Text>
-        <Button onPress={requestPermission} title="grant permission" />
-      </View>
-    );
-  }
   return (
     <SafeAreaProvider>
       <SafeAreaView style={styles.safeArea}>
@@ -173,6 +277,7 @@ export default function HomeScreen() {
             <View style={styles.topSection}>
               <View style={styles.card}>
                 <CameraView
+<<<<<<< HEAD
                   style={styles.camera}
                   onBarcodeScanned={scanned ? undefined : handleBarCodeScanned}
                 />
@@ -209,6 +314,38 @@ export default function HomeScreen() {
 
               </View>
             </View>
+=======
+                  style={StyleSheet.absoluteFillObject}
+                  barcodeScannerSettings={{
+                    barcodeTypes: [
+                      "ean13",
+                      "qr",
+                      "ean8",
+                      "aztec",
+                      "upc_a",
+                      "upc_e",
+                      "codabar",
+                      "code39",
+                      "datamatrix",
+                      "itf14",
+                      "pdf417",
+                    ],
+                  }}
+                    onBarcodeScanned={scanData ? undefined : handleBarCodeScanned}
+                        />
+                        {scanData && (
+                          <Button
+                            title="Clck To Scan Again"
+                            onPress={() => setScanData(false)}
+                            color="#241584"
+                          />
+                        )}
+                        <Button title="barcode test" onPress={barcodeAlert} />
+                      </View>
+                     <Button title={message ? "Loading..." : "Get Data"} disabled={message} onPress={AiResponse} />
+                        <Text>{aiData}</Text>
+                    </View>
+>>>>>>> origin/react-native
 
             {/* Bottom Portion */}
             <View style={styles.bottomSection}>

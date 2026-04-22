@@ -26,10 +26,28 @@ export default function TabLayout() {
           ),
         }}
       />
-      <Tabs.Screen
+      {/* <Tabs.Screen
         name="explore"
         options={{
           title: "Explore",
+          tabBarIcon: ({ color }) => (
+            <FontAwesome5 name="receipt" size={22} color="black" />
+          ),
+        }}
+      /> */}
+      <Tabs.Screen
+        name="pantry"
+        options={{
+          title: "Pantry",
+          tabBarIcon: ({ color }) => (
+            <FontAwesome5 name="receipt" size={22} color="black" />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="wishlist"
+        options={{
+          title: "WishList",
           tabBarIcon: ({ color }) => (
             <FontAwesome5 name="receipt" size={22} color="black" />
           ),
