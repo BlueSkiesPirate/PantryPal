@@ -1,4 +1,4 @@
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc, deleteField } from "firebase/firestore";
 import { auth, db } from "../firebase"; // adjust path as needed
 
 export async function getUserProfile() {
@@ -19,3 +19,40 @@ export async function getUserProfile() {
     return null;
   }
 }
+
+
+  export async function addStoredItem(barcode, jsonData){
+    const userDocRef = doc(db, 'users', auth.currentUser.uid);
+
+    try{
+      await updateDoc(userDocRef, {
+        [`stored.${barcode}`]: jsonData
+      });
+      console.log("Product Data Stored");
+
+  }catch (error) {
+      console.error("Error updating document: ", error);
+    }
+    return getUserProfile();
+}
+
+  
+
+  export async function deleteStoredItems(barcode)  {
+    const userDocRef = doc(db, 'users', auth.currentUser.uid);
+
+    try{
+      await updateDoc(userDocRef, {
+        [`stored.${barcode}`]: deleteField()
+      });
+
+    }catch (error) {
+      console.error("Error deleting document: ", error);
+    }
+
+    return getUserProfile();
+  };
+    
+
+
+

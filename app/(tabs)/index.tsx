@@ -14,12 +14,22 @@ import handleScraping from "./../../response";
 import { doc, setDoc, getDoc } from "firebase/firestore";
 import { auth, db } from "../../firebase";
 import { updateDoc, arrayUnion } from "firebase/firestore";
-import {getUserProfile} from "../../scripts/firebaseHelpers";
+import {getUserProfile, deleteStoredItems} from "../../scripts/firebaseHelpers";
 
 
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 
 import { Feather } from "@expo/vector-icons";
+
+try {
+const products = await getUserProfile();
+console.log("products:", products);
+
+}catch (error) {
+  console.error("Error deleting item:", error);
+}
+
+
 
 const { width, height } = Dimensions.get("window");
 const MENU_WIDTH = width / 3;
