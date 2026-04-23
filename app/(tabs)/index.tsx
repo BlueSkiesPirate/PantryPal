@@ -54,7 +54,7 @@ export default function HomeScreen() {
 
   const [barcodeNumber, setBarcodeNumber] = useState("5449000000996");
   const [storedItems, setStoredItems] = useState<any>([]);
-
+  const [itemDel,setItemDel] = useState(false);
 
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -71,19 +71,43 @@ export default function HomeScreen() {
   const [message, setMessage] = useState(false);
   // const [permission, requestPermission] = useCameraPermissions();
 
+  const user = auth.currentUser;
 
 
-  useEffect(() => {
-  async function load() {
-    const items = await getUserStoredItems();
+ useEffect(() => {
+  const unsubscribe = auth.onAuthStateChanged((user) => {
+    if (!user) {
+      setStoredItems([]);
+      return;
+    }
 
-    console.log("ITEMS:", items);
+    const load = async () => {
+      const items = await getUserStoredItems();
+      setStoredItems(items);
+    };
 
-    setStoredItems(items);
+    load();
+  });
+
+  return unsubscribe;
+}, []);
+
+const delUpdate = async (barcode: number) => {
+  
+  setStoredItems(prev =>
+    prev.filter(item => item.barcode !== barcode)
+  );
+  
+  try{
+  await deleteStoredItem(barcode);
+  }catch (error) {
+    console.error("Error deleting item:", error);
   }
 
-  load();
-}, []);
+
+
+  
+}
 
 
 
@@ -192,7 +216,8 @@ export default function HomeScreen() {
     }
 
     try {
-/*    //---------------------No more api calls--------------------------------------  
+      /*
+    //---------------------No more api calls--------------------------------------  
       const productData = await getProductData();
 
       //Variables to store into the prompt for later usage
@@ -201,9 +226,9 @@ export default function HomeScreen() {
     const productCategory = productData.product.category;
     const imageUrl = productData.product.imageUrl;
 
-    */
+    
     //---------------I RANOUT API QUOTA+ also slow---------------------------------------------
-/*
+
     const prompt = `Based off of ${productName}, ${productBrand}, ${productCategory}, ${imageUrl} and barcode of ${barcodeNumber}, convert it into a JSON object with the following structure. 
     You can elaborate on the recyability stpes if necessary but, be simple. 
     Don't respond with anything except the JSON object:
@@ -223,7 +248,7 @@ export default function HomeScreen() {
       const response: string = result.response.text();
 
 
-      */
+     */ 
      //----------------I RANOUT API QUOTA+ also slow---------------------------------------------
 
       //Temp Info 
@@ -231,20 +256,99 @@ export default function HomeScreen() {
     const productBrand = "Dole";
     const imageUrl = "https://upload.wikimedia.org/wikipedia/commons/thumb/f/fd/Watermelon_cross_BNC.jpg/2560px-WatermelMMMon_cross_BNC.jpg"; 
     
+      const response = `abd`;
 
-
-      const response = `{
-  "productName": "${productName}",
-  "productBrand": "${productBrand}",
-  "image": "${imageUrl}",
-  "ingredients": [],
+      const response1 = `{
+  "productName": "Peanuts",
+  "productBrand": "Some brand",
+  "image": "https://go-upc.s3.amazonaws.com/images/243416799.jpeg",
+  "ingredients": [
+    "Sea Salt",
+    "Spices Including Paprika",
+    "Sugar",
+    "Onion",
+    "Dehydrated Garlic",
+    "Chartor Hickory (Torula Yeast, Smoke Flavor, Silicon Dioxide)",
+    "Mustard",
+    "Citric Acid",
+    "Charoil Mesquite (Soybean Oil, Mesquite Smoke Flavor)",
+    "Habanero Chiles"
+  ],
+  "allergies": [],
+  "recylabilitySteps": []
+}`;
+      const response2 = `{
+  "productName": "CocaCola",
+  "productBrand": "Cocola Company",
+  "image": "https://go-upc.s3.amazonaws.com/images/357597180.jpeg",
+  "ingredients": [
+    "Water",
+    "Sugar",
+    "Carbon Dioxide",
+    "Colour E150d",
+    "Acid: Phosphoric Acid",
+    "Natural Flavourings",
+    "Flavour Caffeine"
+  ],
+  "allergies": [],
+  "recylabilitySteps": []
+}`;
+      const response3 = `{
+  "productName": "Pringles",
+  "productBrand": "Pringles",
+  "image": "https://go-upc.s3.amazonaws.com/images/160913905.jpeg",
+  "ingredients": [
+    "Dried Potatoes",
+    "Vegetable Oil (Corn, Cottonseed, High Oleic Soybean, And/or Sunflower Oil)",
+    "Degerminated Yellow Corn Flour",
+    "Cornstarch",
+    "Rice Flour",
+    "Maltodextrin",
+    "Sugar",
+    "Mono- And Diglycerides",
+    "Contains 2% Or Less Of Salt",
+    "Tomato Powder",
+    "Monosodium Glutamate",
+    "Citric Acid",
+    "Onion Powder",
+    "Spice",
+    "Garlic Powder",
+    "Yeast Extract",
+    "Hydrolyzed Corn Protein",
+    "Malted Barley Flour",
+    "Malic Acid",
+    "Disodium Inosinate",
+    "Disodium Guanylate",
+    "Paprika Extract Color",
+    "Natural Flavors",
+    "Whey",
+    "Wheat Starch"
+  ],
+  "allergies": [],
+  "recylabilitySteps": []
+}`;
+      const response4 = `{
+  "productName": "Cheetos",
+  "productBrand": "Lays",
+  "image": "https://go-upc.s3.amazonaws.com/images/81629821.png",
+  "ingredients": [
+    "Enriched Corn Meal (Corn Meal, Ferrous Sulfate, Niacin, Thiamin Mononitrate, Riboflavin, And Folic Acid)",
+    "Vegetable Oil (Corn, Canola And/or Sunflower Oil)",
+    "Flamin' Hot Seasoning (Maltodextrin [made From Corn], Salt, Sugar, Artificial Color [red 40 Lake, Yellow 6 Lake, Yellow 6, Yellow 5], Monosodium Glutamate, Yeast Extract, Citric Acid, Sunflower Oil, Cheddar Cheese [milk, Cheese Cultures, Salt, Enzymes], Hydrolyzed Corn Protein, Onion Powder, Whey, Natural Flavor, Garlic Powder, Whey Protein Concentrate, Buttermilk, Corn Syrup Solids, Sodium Diacetate, Disodium Inosinate, Disodium Guanylate, Sodium Caseinate, Skim Milk)"
+  ],
   "allergies": [],
   "recylabilitySteps": []
 }`;
       
       setAIResponse(response);
 
-      await addStoredItem(barcodeNumber, JSON.parse(response));
+      await addStoredItem("181174000390", JSON.parse(response1));
+      await addStoredItem("5449000000996", JSON.parse(response2));
+      await addStoredItem("00038000183690", JSON.parse(response3));
+      await addStoredItem("00028400157483", JSON.parse(response4));
+/*
+      setAIResponse(response); // <- Is this used for anything?
+      await addStoredItem(response);*/
       setStoredItems(await getUserStoredItems())
       // Refresh the stored items list
      
@@ -361,7 +465,9 @@ export default function HomeScreen() {
 
                     <View style={styles.bottomSection}>
                       <Text>Items: </Text>
-  {storedItems.map((item) => (
+
+  {auth.currentUser &&
+  storedItems.map((item) => (
     <View key={item.id} style={styles.mainTitle}>
       
       <Image
@@ -374,6 +480,13 @@ export default function HomeScreen() {
       <Text>
         Ingredients: {(item.ingredients || []).slice(0, 3).join(", ")}
       </Text>
+      
+      <Button
+  title="Delete"
+  onPress={() => delUpdate(item.barcode)}
+/>
+
+      
 
     </View>
   ))}

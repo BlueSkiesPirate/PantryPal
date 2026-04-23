@@ -3,13 +3,13 @@ import { View, Text, TextInput, Button } from "react-native";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../../firebase";
 import { router } from "expo-router";
-import {getUserProfile, deleteStoredItems, addStoredItem} from "../../scripts/firebaseHelpers";
+import {getUserProfile, deleteStoredItem, addStoredItem} from "../../scripts/firebaseHelpers";
 import { serializableMappingCache } from "react-native-worklets";
  
 
 export default function Login() {
-  const [email, setEmail] = useState("abc@gmail.com");
-  const [password, setPassword] = useState("123456");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
   const login = async () => {
     try {
@@ -21,8 +21,9 @@ export default function Login() {
   console.log("User profile:", profile);
     router.replace("/(tabs)");
 
-
+/*
    //----Testing----
+
     const barcode = `12304567890`; 
     const itemData = {
       name: "Watermelon",
@@ -36,10 +37,10 @@ export default function Login() {
 
         const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, 1000));
 
-    const aprofile =await deleteStoredItems(barcode);
+    const aprofile =await deleteStoredItem(barcode);
     console.log("profile:", aprofile)
 
-
+*/
   };
     console.log("LOGIN SCREEN LOADED");
   

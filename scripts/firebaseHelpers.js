@@ -33,7 +33,7 @@ export async function getUserProfile() {
   }catch (error) {
       console.error("Error updating document: ", error);
     }
-    return getUserProfile();
+    return getUserStoredItems();
 }
 
 
@@ -44,12 +44,13 @@ export async function getUserProfile() {
       await updateDoc(userDocRef, {
         [`storedItems.${barcode}`]: deleteField()
       });
+      console.log("Deleted/Attempted", barcode);
 
     }catch (error) {
       console.error("Error deleting document: ", error);
     }
 
-    return getUserProfile();
+    return getUserStoredItems();
   };
 
 
