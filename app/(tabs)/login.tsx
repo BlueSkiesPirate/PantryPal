@@ -22,7 +22,7 @@ export default function Login() {
     router.replace("/(tabs)");
 
 
-   /*//----Testing----
+   //----Testing----
     const barcode = `12304567890`; 
     const itemData = {
       name: "Watermelon",
@@ -38,7 +38,7 @@ export default function Login() {
 
     const aprofile =await deleteStoredItems(barcode);
     console.log("profile:", aprofile)
-*/
+
 
   };
     console.log("LOGIN SCREEN LOADED");

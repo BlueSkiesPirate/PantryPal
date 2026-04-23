@@ -41,8 +41,7 @@
     "react-native-svg": "15.12.1",
     "react-native-svg-transformer": "^1.5.3",
     "react-native-web": "~0.21.0",
-    "react-native-worklets": "0.5.1",
-    "undefined": "expo-barcode-scanner\\"
+    "react-native-worklets": "0.5.1"
   },
   "devDependencies": {
     "@types/react": "~19.1.0",

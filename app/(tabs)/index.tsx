@@ -1,5 +1,5 @@
 import { Camera, CameraView } from "expo-camera";
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Button,
   Dimensions,
@@ -10,6 +10,8 @@ import {
   ScrollView,
   StyleSheet,
   View,
+  TouchableOpacity,
+  FlatList,
 } from "react-native";
 
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
@@ -18,22 +20,42 @@ import { Feather } from "@expo/vector-icons";
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-import {getUserProfile, deleteStoredItems, addStoredItem} from "../../scripts/firebaseHelpers";
+import {getUserProfile, deleteStoredItem, addStoredItem, getUserStoredItems} from "../../scripts/firebaseHelpers";
 
-import { auth } from "../../firebase";
+
+
+
+import { collection, addDoc, getDocs, updateDoc, deleteDoc, doc, query, where } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
+import { db, auth } from '../../firebase';
+
+
 
 const { width, height } = Dimensions.get("window");
 const MENU_WIDTH = width / 3;
 
 type ItemType = {
-  id: number;
-  name: string;
+  barcode: number;
+  productName: string;
+  productBrand: string;
   image: string;
+  ingredients: string[];
+  allergies: string[];
+  recyabilitySteps: string[];
 };
 
-let barcodeNumber = "";
+
 
 export default function HomeScreen() {
+
+  //00028400157483
+  //5449000000996
+
+
+  const [barcodeNumber, setBarcodeNumber] = useState("5449000000996");
+  const [storedItems, setStoredItems] = useState<any>([]);
+
+
   const [menuOpen, setMenuOpen] = useState(false);
 
   // const [hasPermission, setHasPermission] = useState(null);
@@ -49,20 +71,49 @@ export default function HomeScreen() {
   const [message, setMessage] = useState(false);
   // const [permission, requestPermission] = useCameraPermissions();
 
-  const handleBarCodeScanned = ({ type, data }: { type: any; data: any }) => {
-    setScanData(true);
 
+
+  useEffect(() => {
+  async function load() {
+    const items = await getUserStoredItems();
+
+    console.log("ITEMS:", items);
+
+    setStoredItems(items);
+  }
+
+  load();
+}, []);
+
+
+
+
+
+
+
+
+
+
+
+
+
+  const handleBarCodeScanned = async ({ type, data }: { type: any; data: any }) => {
+    if (!auth.currentUser) {
+      console.log("User not logged in, cannot scan.");
+      return;
+    }
+
+    setScanData(true);
     console.log("Type: " + type);
     console.log("Data: " + data);
-
-    //logic here to process the barcode number into the ai api
-    barcodeNumber = data;
-    
+    setBarcodeNumber(data);
+    await AiResponse();
   };
 
   //pass it to ai, since it'll now have the barcode var saved
   const barcodeAlert = () => {
     alert("Accessed barcode data: " + barcodeNumber);
+    console.log(storedItems);
     //functionality of the ai
   };
 
@@ -98,6 +149,7 @@ export default function HomeScreen() {
     };
     barcodeUrl: string;
   }
+
 
 
 
@@ -140,6 +192,7 @@ export default function HomeScreen() {
     }
 
     try {
+/*    //---------------------No more api calls--------------------------------------  
       const productData = await getProductData();
 
       //Variables to store into the prompt for later usage
@@ -148,18 +201,19 @@ export default function HomeScreen() {
     const productCategory = productData.product.category;
     const imageUrl = productData.product.imageUrl;
 
+    */
+    //---------------I RANOUT API QUOTA+ also slow---------------------------------------------
+/*
     const prompt = `Based off of ${productName}, ${productBrand}, ${productCategory}, ${imageUrl} and barcode of ${barcodeNumber}, convert it into a JSON object with the following structure. 
     You can elaborate on the recyability stpes if necessary but, be simple. 
     Don't respond with anything except the JSON object:
 {
-"product": {
 "productName": $productName,
 "productBrand": $productBrand,
 "image": $imageUrl, //
 "ingredients": [],
 "allergies": [],
-"recylabilitySteps": [],
-},
+"recylabilitySteps": []
 }`
 
       //Will need a way to go through the response to format the text accordingly.
@@ -167,10 +221,34 @@ export default function HomeScreen() {
       const result = await model.generateContent(prompt);
       //Must store this now instead of console.log
       const response: string = result.response.text();
+
+
+      */
+     //----------------I RANOUT API QUOTA+ also slow---------------------------------------------
+
+      //Temp Info 
+      const productName = "Watermelon";
+    const productBrand = "Dole";
+    const imageUrl = "https://upload.wikimedia.org/wikipedia/commons/thumb/f/fd/Watermelon_cross_BNC.jpg/2560px-WatermelMMMon_cross_BNC.jpg"; 
+    
+
+
+      const response = `{
+  "productName": "${productName}",
+  "productBrand": "${productBrand}",
+  "image": "${imageUrl}",
+  "ingredients": [],
+  "allergies": [],
+  "recylabilitySteps": []
+}`;
+      
       setAIResponse(response);
 
+      await addStoredItem(barcodeNumber, JSON.parse(response));
+      setStoredItems(await getUserStoredItems())
+      // Refresh the stored items list
+     
 
-      await addStoredItem(barcodeNumber, response);
 
 
 
@@ -179,7 +257,7 @@ export default function HomeScreen() {
       
     } 
   }
-
+/*
   const items: ItemType[] = useMemo(
     () => [
       {
@@ -189,7 +267,9 @@ export default function HomeScreen() {
       },
     ],
     [info], // Add 'info' to dependency array so it updates when info changes
-  );
+  );*/
+
+
 
   return (
     <SafeAreaProvider>
@@ -274,28 +354,56 @@ export default function HomeScreen() {
                         <Button title="barcode test" onPress={barcodeAlert} />
                       </View>
                      <Button title={message ? "Loading..." : "Get Data"} disabled={message} onPress={AiResponse} />
-                        <Text>{aiData}</Text>
+                        <Text>{"a"}</Text>
                     </View>
 
             {/* Bottom Portion */}
+
+                    <View style={styles.bottomSection}>
+                      <Text>Items: </Text>
+  {storedItems.map((item) => (
+    <View key={item.id} style={styles.mainTitle}>
+      
+      <Image
+        source={{ uri: item.image }}
+        style={{ width: 50, height: 50 }}
+      />
+
+      <Text style={styles.itemName}>{item.name}</Text>
+
+      <Text>
+        Ingredients: {(item.ingredients || []).slice(0, 3).join(", ")}
+      </Text>
+
+    </View>
+  ))}
+</View>
+
+    {/*
             <View style={styles.bottomSection}>
               <ScrollView
                 style={styles.scrollArea}
                 contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
               >
-                {items.map((item) => (
+                {storedItems.map((item: ItemType & { id: string }) => (
                   <View key={item.id} style={styles.listRow}>
                     <View style={styles.leftRowContent}>
-                      <Image
-                        source={{ uri: item.image }}
-                        style={styles.itemImage}
-                      />
-                      <Text style={styles.itemName}>{item.name}</Text>
+                      <Image source={{ uri: item.image }} style={styles.itemImage} />
+                      <View>
+                        <Text style={styles.itemName}>{item.productName}</Text>
+                        <Text style={styles.itemBrand}>{item.productBrand}</Text>
+                      </View>
                     </View>
 
                     <View style={styles.rowIcons}>
-                      <Pressable style={styles.rowIconBtn}>
+                      <Pressable 
+                        style={styles.rowIconBtn}
+                        onPress={async () => {
+                          await deleteStoredItem(auth.currentUser!.uid, item.id);
+                          
+                        }}
+                      >
                         <Feather name="trash-2" size={20} color="black" />
                       </Pressable>
 
@@ -309,16 +417,33 @@ export default function HomeScreen() {
                     </View>
                   </View>
                 ))}
-              </ScrollView>
+              </ScrollView>*/}
             </View>
           </View>
-        </View>
-      </SafeAreaView>
+        </SafeAreaView>
+      
+      
     </SafeAreaProvider>
   );
 }
 
 const styles = StyleSheet.create({
+
+    todoContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginVertical: 10,
+    width: '100%',
+  },  mainTitle: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    marginBottom: 10, // Adjust spacing as needed
+    color: '#333', // Choose a color that fits your app theme
+  },
+
+
+
   safeArea: {
     flex: 1,
     backgroundColor: "white",

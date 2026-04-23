@@ -26,7 +26,7 @@ export async function getUserProfile() {
 
     try{
       await updateDoc(userDocRef, {
-        [`stored.${barcode}`]: jsonData
+        [`storedItems.${barcode}`]: jsonData
       });
       console.log("Product Data Stored");
 
@@ -37,12 +37,12 @@ export async function getUserProfile() {
 }
 
 
-  export async function deleteStoredItems(barcode)  {
+  export async function deleteStoredItem(barcode)  {
     const userDocRef = doc(db, 'users', auth.currentUser.uid);
 
     try{
       await updateDoc(userDocRef, {
-        [`stored.${barcode}`]: deleteField()
+        [`storedItems.${barcode}`]: deleteField()
       });
 
     }catch (error) {
@@ -51,7 +51,37 @@ export async function getUserProfile() {
 
     return getUserProfile();
   };
+
+
+
+  export async function getUserStoredItems() {
+    const user = auth.currentUser;
+    if (!user) {
+    console.log("No user is logged in");
+    return null;
+  }
+
+  const userDocRef = doc(db, "users", auth.currentUser.uid);
+  const docSnap = await getDoc(userDocRef);
+
+  if (!docSnap.exists()) return [];
+
+  const stored = docSnap.data().storedItems || {};
+
+  return Object.entries(stored).map(([barcode, item]) => ({
+    barcode: barcode,
+    name: item.productName,
+    brand: item.productBrand,
+    image: item.image,
+    ingredients: item.ingredients,
+    allergies: item.allergies,
+    recyabilitySteps: item.recyabilitySteps,
     
+  }));
+}
+
+
+
 
 
 

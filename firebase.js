@@ -3,24 +3,13 @@ import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
-// Your web app's Firebase configuration
-/*
 const firebaseConfig = {
-  apiKey: "AIzaSyBauK0XpYVnanRN7o2q9q34Zf1SqXXANyI",
-  authDomain: "temporaryppdb-7e0c7.firebaseapp.com",
-  projectId: "temporaryppdb-7e0c7",
-  storageBucket: "temporaryppdb-7e0c7.firebasestorage.app",
-  messagingSenderId: "556616560382",
-  appId: "1:556616560382:web:389292d96ac306c6bf7faf"
-};
-*/
-const firebaseConfig = {
-  apiKey: "AIzaSyBauK0XpYVnanRN7o2q9q34Zf1SqXXANyI",
-  authDomain: "temporaryppdb-7e0c7.firebaseapp.com",
-  projectId: "temporaryppdb-7e0c7",
-  storageBucket: "temporaryppdb-7e0c7.firebasestorage.app",
-  messagingSenderId: "556616560382",
-  appId: "1:556616560382:web:389292d96ac306c6bf7faf"
+  apiKey: "AIzaSyCu_5QtvbrNHQ3iIbu-3LWJIIeYQ4-3bPA",
+  authDomain: "pantrypal-5014c.firebaseapp.com",
+  projectId: "pantrypal-5014c",
+  storageBucket: "pantrypal-5014c.firebasestorage.app",
+  messagingSenderId: "728119730349",
+  appId: "1:728119730349:web:e33b506d8c2d9efd756624"
 };
 
 // Initialize Firebase
