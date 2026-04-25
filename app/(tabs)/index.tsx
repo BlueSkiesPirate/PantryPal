@@ -52,7 +52,7 @@ export default function HomeScreen() {
   //5449000000996
 
 
-  const [barcodeNumber, setBarcodeNumber] = useState("");
+  const [barcodeNumber, setBarcodeNumber] = useState(""); // should be safe to del, i'll look it over again ltr maybe
   const [menuOpen, setMenuOpen] = useState(false);
 
   // const [hasPermission, setHasPermission] = useState(null);
@@ -118,6 +118,7 @@ const delUpdate = async (barcode: number) => {
 
 
   const handleBarCodeScanned = async ({ type, data }: { type: any; data: any }) => {
+    console.log("IT RAN")
     if (isProcessing.current) return; // stops my quota from being maxxed out frm 1 call
 
     if (!auth.currentUser) {
@@ -130,18 +131,21 @@ const delUpdate = async (barcode: number) => {
     console.log("Type: " + type);
     console.log("Data: " + data);
     setBarcodeNumber(data);
-    await AiResponse();
+  //  console.log("BN:", barcodeNumber);
+
+    await AiResponse(data);
   };
 
   //pass it to ai, since it'll now have the barcode var saved
   const barcodeAlert = () => {
    
-      console.log(barcodeNumber);
+      console.log(barcodeNumber); // 
       console.log(AiResponse );
       /*
       console.log("FB Raw" ,getUserProfile());
       console.log("FB->ARRAY" ,storedItems);
-      storedItems.map((item: ItemType) => console.log("Stored item:", item));*/
+      storedItems.map((item: ItemType) => console.log("Stored item:", item));
+      */
   
     //functionality of the ai
   };
@@ -186,15 +190,16 @@ const delUpdate = async (barcode: number) => {
   //Returns the entire interface. e.g. use .name to retrieve it.
   //If it doesnt exist, it needs to be able to say that it doesnt exist in the database
   //Will require multiple ai calls then
-  const getProductData = async () => {
+  const getProductData = async (barcode: string) => {
     //Barcode number
-    const product_code: string = barcodeNumber
+    
     const go_upc_api_key: string = process.env.EXPO_PUBLIC_GO_UPC_KEY!
     const api_base_url = "https://go-upc.com/api/v1/code/"
 
-    const url: string = api_base_url + product_code + "?key=" + go_upc_api_key
+    const url: string = api_base_url + barcode + "?key=" + go_upc_api_key
     
-    console.log(url); 
+   // console.log(url); 
+    
     const response = await fetch(url);
 
     //checking if information is retrieved, if not error.
@@ -205,6 +210,7 @@ const delUpdate = async (barcode: number) => {
     //Might be able to cut out the middle man
     const go_upc_data: GoUpcAPIResponse = await response.json();
     return go_upc_data;
+    
   }
 
   //Google section/gemini ai api section
@@ -214,7 +220,7 @@ const delUpdate = async (barcode: number) => {
   const ai = new GoogleGenerativeAI(google_api_key);
 
 
-  const AiResponse = async() =>{
+  const AiResponse = async(barcode: string) =>{
     const user = auth.currentUser;
     if (!user){
       console.log("Not logged in, cant fetch profile.");
@@ -224,7 +230,7 @@ const delUpdate = async (barcode: number) => {
     try {
       
     //---------------------No more api calls--------------------------------------  
-      const productData = await getProductData();
+      const productData = await getProductData(barcode);
 
       //Variables to store into the prompt for later usage
       const productName = productData.product.name;
@@ -254,112 +260,20 @@ const prompt = `Based off of ${productName}, ${productBrand}, ${productCategory}
 `
 
       //Will need a way to go through the response to format the text accordingly.
-      
-      const model = ai.getGenerativeModel({ model: "gemini-3-flash-preview" });
+      /*
+      model cycle
+      gemini-3.1-flash-lite-preview
+      gemini-3-flash-preview
+      */
+
+      const model = ai.getGenerativeModel({ model: "gemini-3.1-flash-lite-preview" });
       const result = await model.generateContent(prompt);
       //Must store this now instead of console.log
       const response: string = result.response.text();
 
 
       
-     //----------------I RANOUT API QUOTA+ also slow---------------------------------------------
-/*
-      //Temp Info 
-      const productName = "Watermelon";
-    const productBrand = "Dole";
-    const imageUrl = "https://upload.wikimedia.org/wikipedia/commons/thumb/f/fd/Watermelon_cross_BNC.jpg/2560px-WatermelMMMon_cross_BNC.jpg"; 
     
-      const response = `abd`;
-
-      const response1 = `{
-  "productName": "Peanuts",
-  "productBrand": "Some brand",
-  "image": "https://go-upc.s3.amazonaws.com/images/243416799.jpeg",
-  "ingredients": [
-    "Sea Salt",
-    "Spices Including Paprika",
-    "Sugar",
-    "Onion",
-    "Dehydrated Garlic",
-    "Chartor Hickory (Torula Yeast, Smoke Flavor, Silicon Dioxide)",
-    "Mustard",
-    "Citric Acid",
-    "Charoil Mesquite (Soybean Oil, Mesquite Smoke Flavor)",
-    "Habanero Chiles"
-  ],
-  "allergies": [],
-  "recylabilitySteps": []
-}`;
-      const response2 = `{
-  "productName": "CocaCola",
-  "productBrand": "Cocola Company",
-  "image": "https://go-upc.s3.amazonaws.com/images/357597180.jpeg",
-  "ingredients": [
-    "Water",
-    "Sugar",
-    "Carbon Dioxide",
-    "Colour E150d",
-    "Acid: Phosphoric Acid",
-    "Natural Flavourings",
-    "Flavour Caffeine"
-  ],
-  "allergies": [],
-  "recylabilitySteps": []
-}`;
-      const response3 = `{
-  "productName": "Pringles",
-  "productBrand": "Pringles",
-  "image": "https://go-upc.s3.amazonaws.com/images/160913905.jpeg",
-  "ingredients": [
-    "Dried Potatoes",
-    "Vegetable Oil (Corn, Cottonseed, High Oleic Soybean, And/or Sunflower Oil)",
-    "Degerminated Yellow Corn Flour",
-    "Cornstarch",
-    "Rice Flour",
-    "Maltodextrin",
-    "Sugar",
-    "Mono- And Diglycerides",
-    "Contains 2% Or Less Of Salt",
-    "Tomato Powder",
-    "Monosodium Glutamate",
-    "Citric Acid",
-    "Onion Powder",
-    "Spice",
-    "Garlic Powder",
-    "Yeast Extract",
-    "Hydrolyzed Corn Protein",
-    "Malted Barley Flour",
-    "Malic Acid",
-    "Disodium Inosinate",
-    "Disodium Guanylate",
-    "Paprika Extract Color",
-    "Natural Flavors",
-    "Whey",
-    "Wheat Starch"
-  ],
-  "allergies": [],
-  "recylabilitySteps": []
-}`;
-      const response4 = `{
-  "productName": "Cheetos",
-  "productBrand": "Lays",
-  "image": "https://go-upc.s3.amazonaws.com/images/81629821.png",
-  "ingredients": [
-    "Enriched Corn Meal (Corn Meal, Ferrous Sulfate, Niacin, Thiamin Mononitrate, Riboflavin, And Folic Acid)",
-    "Vegetable Oil (Corn, Canola And/or Sunflower Oil)",
-    "Flamin' Hot Seasoning (Maltodextrin [made From Corn], Salt, Sugar, Artificial Color [red 40 Lake, Yellow 6 Lake, Yellow 6, Yellow 5], Monosodium Glutamate, Yeast Extract, Citric Acid, Sunflower Oil, Cheddar Cheese [milk, Cheese Cultures, Salt, Enzymes], Hydrolyzed Corn Protein, Onion Powder, Whey, Natural Flavor, Garlic Powder, Whey Protein Concentrate, Buttermilk, Corn Syrup Solids, Sodium Diacetate, Disodium Inosinate, Disodium Guanylate, Sodium Caseinate, Skim Milk)"
-  ],
-  "allergies": [],
-  "recylabilitySteps": []
-}`;
-      
-      setAIResponse(response);
-
-      await addStoredItem("181174000390", JSON.parse(response1));
-      await addStoredItem("5449000000996", JSON.parse(response2));
-      await addStoredItem("00038000183690", JSON.parse(response3));
-      await addStoredItem("00028400157483", JSON.parse(response4));
-*/
    //   setAIResponse(response); // <- Is this used for anything?
    /*   
       const formattedResponse = `{
