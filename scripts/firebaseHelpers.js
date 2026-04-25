@@ -53,8 +53,6 @@ export async function getUserProfile() {
     return getUserStoredItems();
   };
 
-
-
   export async function getUserStoredItems() {
     const user = auth.currentUser;
     if (!user) {
@@ -71,8 +69,8 @@ export async function getUserProfile() {
 
   return Object.entries(stored).map(([barcode, item]) => ({
     barcode: barcode,
-    name: item.productName,
-    brand: item.productBrand,
+    productName: item.productName,
+    productBrand: item.productBrand,
     image: item.image,
     ingredients: item.ingredients,
     allergies: item.allergies,

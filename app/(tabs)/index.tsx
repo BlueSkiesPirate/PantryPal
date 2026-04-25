@@ -26,8 +26,8 @@ import {getUserProfile, deleteStoredItem, addStoredItem, getUserStoredItems} fro
 
 
 import { collection, addDoc, getDocs, updateDoc, deleteDoc, doc, query, where } from 'firebase/firestore';
-import { getAuth } from 'firebase/auth';
 import { db, auth } from '../../firebase';
+import { get } from "react-native/Libraries/TurboModule/TurboModuleRegistry";
 
 
 
@@ -53,9 +53,6 @@ export default function HomeScreen() {
 
 
   const [barcodeNumber, setBarcodeNumber] = useState("5449000000996");
-  const [storedItems, setStoredItems] = useState<any>([]);
-  const [itemDel,setItemDel] = useState(false);
-
   const [menuOpen, setMenuOpen] = useState(false);
 
   // const [hasPermission, setHasPermission] = useState(null);
@@ -71,6 +68,8 @@ export default function HomeScreen() {
   const [message, setMessage] = useState(false);
   // const [permission, requestPermission] = useCameraPermissions();
 
+
+  const [storedItems, setStoredItems] = useState<any>([]);
   const user = auth.currentUser;
 
 
@@ -104,9 +103,6 @@ const delUpdate = async (barcode: number) => {
     console.error("Error deleting item:", error);
   }
 
-
-
-  
 }
 
 
@@ -136,8 +132,12 @@ const delUpdate = async (barcode: number) => {
 
   //pass it to ai, since it'll now have the barcode var saved
   const barcodeAlert = () => {
-    alert("Accessed barcode data: " + barcodeNumber);
-    console.log(storedItems);
+   
+    
+      console.log("FB Raw" ,getUserProfile());
+      console.log("FB->ARRAY" ,storedItems);
+      storedItems.map((item: ItemType) => console.log("Stored item:", item));
+  
     //functionality of the ai
   };
 
@@ -216,7 +216,7 @@ const delUpdate = async (barcode: number) => {
     }
 
     try {
-      /*
+      
     //---------------------No more api calls--------------------------------------  
       const productData = await getProductData();
 
@@ -242,15 +242,15 @@ const delUpdate = async (barcode: number) => {
 }`
 
       //Will need a way to go through the response to format the text accordingly.
-      const model = ai.getGenerativeModel({ model: "gemini-3-flash-preview" });
+      const model = ai.getGenerativeModel({ model: "gemini-3.1-flash-lite-preview" });
       const result = await model.generateContent(prompt);
       //Must store this now instead of console.log
       const response: string = result.response.text();
 
 
-     */ 
+      
      //----------------I RANOUT API QUOTA+ also slow---------------------------------------------
-
+/*
       //Temp Info 
       const productName = "Watermelon";
     const productBrand = "Dole";
@@ -346,9 +346,9 @@ const delUpdate = async (barcode: number) => {
       await addStoredItem("5449000000996", JSON.parse(response2));
       await addStoredItem("00038000183690", JSON.parse(response3));
       await addStoredItem("00028400157483", JSON.parse(response4));
-/*
+*/
       setAIResponse(response); // <- Is this used for anything?
-      await addStoredItem(response);*/
+      await addStoredItem( barcodeNumber,JSON.parse(response));
       setStoredItems(await getUserStoredItems())
       // Refresh the stored items list
      
@@ -455,20 +455,22 @@ const delUpdate = async (barcode: number) => {
                             color="#241584"
                           />
                         )}
-                        <Button title="barcode test" onPress={barcodeAlert} />
+         //MACCYD
+                       <Button title="barcode test" onPress={barcodeAlert} />
+                      <Button title={message ? "Loading..." : "Gett Data"} disabled={message} onPress={AiResponse} />
+
                       </View>
-                     <Button title={message ? "Loading..." : "Get Data"} disabled={message} onPress={AiResponse} />
-                        <Text>{"a"}</Text>
+                  
                     </View>
 
             {/* Bottom Portion */}
-
+{/*
                     <View style={styles.bottomSection}>
                       <Text>Items: </Text>
 
   {auth.currentUser &&
   storedItems.map((item) => (
-    <View key={item.id} style={styles.mainTitle}>
+    <View key={item.barcode} style={styles.mainTitle}>
       
       <Image
         source={{ uri: item.image }}
@@ -484,26 +486,30 @@ const delUpdate = async (barcode: number) => {
       <Button
   title="Delete"
   onPress={() => delUpdate(item.barcode)}
-/>
+/>*/}
 
-      
 
-    </View>
-  ))}
-</View>
 
-    {/*
-            <View style={styles.bottomSection}>
+
+
+              <View style={styles.bottomSection}>
               <ScrollView
                 style={styles.scrollArea}
                 contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
               >
-                {storedItems.map((item: ItemType & { id: string }) => (
-                  <View key={item.id} style={styles.listRow}>
+                {
+                auth.currentUser && storedItems?.map((item: ItemType & { barcode: string }) => (
+
+              
+
+                  <View key={item.barcode} style={styles.listRow}>
                     <View style={styles.leftRowContent}>
                       <Image source={{ uri: item.image }} style={styles.itemImage} />
                       <View>
+
+
+
                         <Text style={styles.itemName}>{item.productName}</Text>
                         <Text style={styles.itemBrand}>{item.productBrand}</Text>
                       </View>
@@ -512,10 +518,7 @@ const delUpdate = async (barcode: number) => {
                     <View style={styles.rowIcons}>
                       <Pressable 
                         style={styles.rowIconBtn}
-                        onPress={async () => {
-                          await deleteStoredItem(auth.currentUser!.uid, item.id);
-                          
-                        }}
+                        onPress={() => delUpdate(item.barcode)}
                       >
                         <Feather name="trash-2" size={20} color="black" />
                       </Pressable>
@@ -529,10 +532,27 @@ const delUpdate = async (barcode: number) => {
                       </Pressable>
                     </View>
                   </View>
+                  
                 ))}
-              </ScrollView>*/}
+              </ScrollView>
+
+
+
+
+
+
+
+
+
+      
+
+    </View>
+  
+</View>
+
+    
             </View>
-          </View>
+          
         </SafeAreaView>
       
       
@@ -708,6 +728,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     color: "#111",
+    flexShrink: 1,
+  },
+  itemBrand: {
+    fontSize: 14,
+    fontWeight: "400",
+    color: "#666",
     flexShrink: 1,
   },
   rowIcons: {
