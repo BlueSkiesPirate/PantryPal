@@ -1,5 +1,12 @@
 import { useState } from "react";
-import { View, Text, TextInput, Button } from "react-native";
+import { View, Text, TextInput, Button,
+  StyleSheet, 
+    
+  TouchableOpacity, 
+  KeyboardAvoidingView, 
+  Platform
+
+} from "react-native";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../../firebase";
 import { router } from "expo-router";
@@ -21,40 +28,122 @@ export default function Login() {
   console.log("User profile:", profile);
     router.replace("/(tabs)");
 
-/*
-   //----Testing----
-
-    const barcode = `12304567890`; 
-    const itemData = {
-      name: "Watermelon",
-      quantity: 1,
-      expirationDate: new Date("2024-12-31"),
-    };
-
-    var consoleOutput = await addStoredItem(barcode,itemData);
-    console.log("Added item:", consoleOutput);  
-
-
-        const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, 1000));
-
-    const aprofile =await deleteStoredItem(barcode);
-    console.log("profile:", aprofile)
-
-*/
   };
     console.log("LOGIN SCREEN LOADED");
   
 
-    
+return (
+    <KeyboardAvoidingView 
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      style={styles.container}
+    >
+      <View style={styles.innerContainer}>
+        <Text style={styles.title}>Welcome Back</Text>
+        <Text style={styles.subtitle}>Please sign in to continue</Text>
 
-  return (
-    <View style={{ flex: 1, backgroundColor: "white", padding: 20 }}>
-      <Text style={{ fontSize: 24 }}>Login</Text>
+        <View style={styles.inputContainer}>
+          <Text style={styles.label}>Email</Text>
+          <TextInput 
+            style={styles.input}
+            placeholder="example@mail.com"
+            placeholderTextColor="#aaa"
+            keyboardType="email-address"
+            autoCapitalize="none"
+            onChangeText={setEmail}
+          />
+        </View>
 
-      <TextInput placeholder="Email" onChangeText={setEmail} />
-      <TextInput placeholder="Password" secureTextEntry onChangeText={setPassword} />
+        <View style={styles.inputContainer}>
+          <Text style={styles.label}>Password</Text>
+          <TextInput 
+            style={styles.input}
+            placeholder="••••••••"
+            placeholderTextColor="#aaa"
+            secureTextEntry
+            onChangeText={setPassword}
+          />
+        </View>
 
-      <Button title="Login" onPress={login} />
-    </View>
+        <TouchableOpacity style={styles.button} onPress={login}>
+          <Text style={styles.buttonText}>Login</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.forgotButton}>
+          <Text style={styles.forgotText}>Forgot Password?</Text>
+        </TouchableOpacity>
+      </View>
+    </KeyboardAvoidingView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#F5F7FA',
+  },
+  innerContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    paddingHorizontal: 30,
+  },
+  title: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#1A1C1E',
+    marginBottom: 8,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: '#6C7278',
+    marginBottom: 40,
+  },
+  inputContainer: {
+    marginBottom: 20,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1A1C1E',
+    marginBottom: 8,
+  },
+  input: {
+    backgroundColor: '#FFFFFF',
+    height: 55,
+    borderRadius: 12,
+    paddingHorizontal: 15,
+    fontSize: 16,
+    borderWidth: 1,
+    borderColor: '#DCDFE4',
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  button: {
+    backgroundColor: '#007AFF',
+    height: 55,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 10,
+    shadowColor: "#007AFF",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 5,
+  },
+  buttonText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  forgotButton: {
+    marginTop: 20,
+    alignItems: 'center',
+  },
+  forgotText: {
+    color: '#007AFF',
+    fontWeight: '600',
+  },
+});

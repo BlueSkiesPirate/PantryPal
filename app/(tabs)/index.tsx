@@ -1,5 +1,5 @@
 import { Camera, CameraView } from "expo-camera";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Button,
   Dimensions,
@@ -52,7 +52,7 @@ export default function HomeScreen() {
   //5449000000996
 
 
-  const [barcodeNumber, setBarcodeNumber] = useState("5449000000996");
+  const [barcodeNumber, setBarcodeNumber] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
 
   // const [hasPermission, setHasPermission] = useState(null);
@@ -71,7 +71,7 @@ export default function HomeScreen() {
 
   const [storedItems, setStoredItems] = useState<any>([]);
   const user = auth.currentUser;
-
+  const isProcessing = useRef(false);
 
  useEffect(() => {
   const unsubscribe = auth.onAuthStateChanged((user) => {
@@ -118,11 +118,14 @@ const delUpdate = async (barcode: number) => {
 
 
   const handleBarCodeScanned = async ({ type, data }: { type: any; data: any }) => {
+    if (isProcessing.current) return; // stops my quota from being maxxed out frm 1 call
+
     if (!auth.currentUser) {
       console.log("User not logged in, cannot scan.");
       return;
     }
-
+    
+    isProcessing.current = true;
     setScanData(true);
     console.log("Type: " + type);
     console.log("Data: " + data);
@@ -133,10 +136,12 @@ const delUpdate = async (barcode: number) => {
   //pass it to ai, since it'll now have the barcode var saved
   const barcodeAlert = () => {
    
-    
+      console.log(barcodeNumber);
+      console.log(AiResponse );
+      /*
       console.log("FB Raw" ,getUserProfile());
       console.log("FB->ARRAY" ,storedItems);
-      storedItems.map((item: ItemType) => console.log("Stored item:", item));
+      storedItems.map((item: ItemType) => console.log("Stored item:", item));*/
   
     //functionality of the ai
   };
@@ -170,6 +175,7 @@ const delUpdate = async (barcode: number) => {
       imageUrl: string;
       brand?: string;
       category?: string;
+      ingredients?: string[];
     };
     barcodeUrl: string;
   }
@@ -222,13 +228,14 @@ const delUpdate = async (barcode: number) => {
 
       //Variables to store into the prompt for later usage
       const productName = productData.product.name;
-    const productBrand = productData.product.brand;
-    const productCategory = productData.product.category;
-    const imageUrl = productData.product.imageUrl;
+      const productBrand = productData.product.brand;
+      const productCategory = productData.product.category;
+      const imageUrl = productData.product.imageUrl;
+      const ingredients = productData.product.ingredients;
 
     
     //---------------I RANOUT API QUOTA+ also slow---------------------------------------------
-
+/*
     const prompt = `Based off of ${productName}, ${productBrand}, ${productCategory}, ${imageUrl} and barcode of ${barcodeNumber}, convert it into a JSON object with the following structure. 
     You can elaborate on the recyability stpes if necessary but, be simple. 
     Don't respond with anything except the JSON object:
@@ -240,9 +247,15 @@ const delUpdate = async (barcode: number) => {
 "allergies": [],
 "recylabilitySteps": []
 }`
+*/
+const prompt = `Based off of ${productName}, ${productBrand}, ${productCategory}, ${imageUrl} and barcode of ${barcodeNumber}
+, Give me the recyability steps, be simple. Don't respond execpt for the recyability steps in a list format sepreated by commas, i'll be putting it into an array. " "," ", ... " ".
+
+`
 
       //Will need a way to go through the response to format the text accordingly.
-      const model = ai.getGenerativeModel({ model: "gemini-3.1-flash-lite-preview" });
+      
+      const model = ai.getGenerativeModel({ model: "gemini-3-flash-preview" });
       const result = await model.generateContent(prompt);
       //Must store this now instead of console.log
       const response: string = result.response.text();
@@ -347,8 +360,31 @@ const delUpdate = async (barcode: number) => {
       await addStoredItem("00038000183690", JSON.parse(response3));
       await addStoredItem("00028400157483", JSON.parse(response4));
 */
-      setAIResponse(response); // <- Is this used for anything?
-      await addStoredItem( barcodeNumber,JSON.parse(response));
+   //   setAIResponse(response); // <- Is this used for anything?
+   /*   
+      const formattedResponse = `{
+      "productName": "${productName}",
+"productBrand": "${productBrand}",
+"image": "${imageUrl}", 
+"ingredients": ${ingredients},
+"allergies": [],
+"recylabilitySteps": [${(await model.generateContent(prompt)).response.text()} ]
+      
+      }`*/
+      const formattedResponse = `{
+      "productName": "${productName}",
+"productBrand": "${productBrand}",
+"image": "${imageUrl}", 
+"ingredients": "[${ingredients?.text.split(',')}]",
+"allergies": [],
+"recylabilitySteps": [${(await model.generateContent(prompt)).response.text()} ]
+      
+      }`
+      
+console.log("FR", formattedResponse)
+
+
+      await addStoredItem( barcodeNumber,JSON.parse(formattedResponse));
       setStoredItems(await getUserStoredItems())
       // Refresh the stored items list
      
@@ -451,11 +487,13 @@ const delUpdate = async (barcode: number) => {
                         {scanData && (
                           <Button
                             title="Clck To Scan Again"
-                            onPress={() => setScanData(false)}
+                            onPress={() => {setScanData(false); isProcessing.current = false;}
+                              
+                            }
                             color="#241584"
                           />
                         )}
-         //MACCYD
+         
                        <Button title="barcode test" onPress={barcodeAlert} />
                       <Button title={message ? "Loading..." : "Gett Data"} disabled={message} onPress={AiResponse} />
 
