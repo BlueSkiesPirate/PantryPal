@@ -34,7 +34,7 @@ export default function Register() {
 
 
       storedItems: [],
-
+      wishlistItems: [],
       
       createdAt: new Date(),
     });

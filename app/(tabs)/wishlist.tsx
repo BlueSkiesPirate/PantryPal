@@ -1,33 +1,34 @@
-import { Ionicons } from "@expo/vector-icons";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
+  TextInput,
 } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
+
+// Firebase helpers (JS)
+import {
+  getWishlistItems,
+  addWishlistItem,
+  deleteWishlistItem,
+} from "../../scripts/firebaseHelpers";
 
 type WishlistItem = {
   id: string;
   name: string;
 };
 
-const wishlistItems: WishlistItem[] = [
-  { id: "w1", name: "tuna" },
-  { id: "w2", name: "milk" },
-  { id: "w3", name: "bananas" },
-  { id: "w4", name: "bread" },
-  { id: "w5", name: "eggs" },
-  { id: "w6", name: "yogurt" },
-  { id: "w7", name: "spinach" },
-  { id: "w8", name: "rice" },
-  { id: "w9", name: "cheese" },
-  { id: "w10", name: "apples" },
-];
-
-const WishlistCard = ({ item }: { item: WishlistItem }) => {
+const WishlistCard = ({
+  item,
+  onDelete,
+}: {
+  item: WishlistItem;
+  onDelete: (name: string) => void;
+}) => {
   return (
     <View style={styles.itemCard}>
       <View style={styles.itemImagePlaceholder} />
@@ -36,7 +37,7 @@ const WishlistCard = ({ item }: { item: WishlistItem }) => {
         {item.name}
       </Text>
 
-      <TouchableOpacity style={styles.trashButton}>
+      <TouchableOpacity style={styles.trashButton} onPress={() => onDelete(item.name)}>
         <Ionicons name="trash-outline" size={22} color="#111" />
       </TouchableOpacity>
     </View>
@@ -44,6 +45,44 @@ const WishlistCard = ({ item }: { item: WishlistItem }) => {
 };
 
 export default function WishlistScreen() {
+  const [wishlist, setWishlist] = useState<WishlistItem[]>([]);
+  const [newItem, setNewItem] = useState("");
+
+  // Load wishlist on mount
+  useEffect(() => {
+    const load = async () => {
+      const items = await getWishlistItems();
+      setWishlist(
+        items.map((name: string, index: number) => ({
+          id: `${index}-${name}`,
+          name,
+        }))
+      );
+    };
+
+    load();
+  }, []);
+
+  // Add item
+  const handleAdd = async () => {
+    if (!newItem.trim()) return;
+
+    await addWishlistItem(newItem.trim());
+
+    setWishlist((prev) => [
+      ...prev,
+      { id: `${Date.now()}`, name: newItem.trim() },
+    ]);
+
+    setNewItem("");
+  };
+
+  // Delete item
+  const handleDelete = async (name: string) => {
+    await deleteWishlistItem(name);
+    setWishlist((prev) => prev.filter((i) => i.name !== name));
+  };
+
   return (
     <SafeAreaProvider>
       <SafeAreaView style={styles.safeArea} edges={["top", "left", "right"]}>
@@ -55,10 +94,14 @@ export default function WishlistScreen() {
           <TouchableOpacity style={styles.profileButton}>
             <Ionicons name="person-outline" size={24} color="#111" />
           </TouchableOpacity>
+
           <View style={styles.container}>
+            {/* Header */}
             <View style={styles.headerRow}>
               <View style={styles.banner}>
                 <Text style={styles.bannerTitle}>Wishlist</Text>
+
+                {/* Decorative cluster */}
                 <View style={styles.bannerImageCluster}>
                   <View style={styles.circleBack} />
                   <View style={styles.circleFront} />
@@ -72,19 +115,41 @@ export default function WishlistScreen() {
               </View>
             </View>
 
-            <View style={styles.infoRow}>
-              <Text style={styles.itemCount}>10 items</Text>
-              <TouchableOpacity style={styles.addButton}>
-                <Ionicons name="add-circle-outline" size={18} color="#111" />
+            {/* Add Item Row */}
+            <View style={{ flexDirection: "row", marginBottom: 10 }}>
+              <TextInput
+                value={newItem}
+                onChangeText={setNewItem}
+                placeholder="Add item..."
+                style={{
+                  flex: 1,
+                  backgroundColor: "#fff",
+                  padding: 10,
+                  borderRadius: 6,
+                  borderWidth: 1,
+                  borderColor: "#ccc",
+                }}
+              />
+              <TouchableOpacity
+                onPress={handleAdd}
+                style={{ marginLeft: 8, justifyContent: "center" }}
+              >
+                <Ionicons name="add-circle-outline" size={32} color="#111" />
               </TouchableOpacity>
+            </View>
+
+            {/* Info Row */}
+            <View style={styles.infoRow}>
+              <Text style={styles.itemCount}>{wishlist.length} items</Text>
             </View>
 
             <View style={styles.divider} />
 
+            {/* Wishlist Items */}
             <View style={styles.listSection}>
-              {wishlistItems.map((item) => (
+              {wishlist.map((item) => (
                 <View key={item.id} style={styles.cardSpacing}>
-                  <WishlistCard item={item} />
+                  <WishlistCard item={item} onDelete={handleDelete} />
                 </View>
               ))}
             </View>
@@ -94,7 +159,6 @@ export default function WishlistScreen() {
     </SafeAreaProvider>
   );
 }
-
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,

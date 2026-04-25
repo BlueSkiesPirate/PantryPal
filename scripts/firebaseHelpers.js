@@ -1,4 +1,4 @@
-import { doc, getDoc, updateDoc, deleteField } from "firebase/firestore";
+import { doc, getDoc, arrayUnion, arrayRemove, updateDoc, deleteField } from "firebase/firestore";
 import { auth, db } from "../firebase"; // adjust path as needed
 
 export async function getUserProfile() {
@@ -79,8 +79,33 @@ export async function getUserProfile() {
   }));
 }
 
+// Get wishlist items for the current user
+export const getWishlistItems = async () => {
+  const uid = auth.currentUser?.uid;
+  if (!uid) return [];
 
+  const snap = await getDoc(doc(db, "users", uid));
+  return snap.data()?.wishlistItems || [];
+};
 
+// Add an item to the wishlist
+export const addWishlistItem = async (itemName) => {
+  const uid = auth.currentUser?.uid;
+  if (!uid) return;
 
+  await updateDoc(doc(db, "users", uid), {
+    wishlistItems: arrayUnion(itemName),
+  });
+};
+
+// Remove an item from the wishlist
+export const deleteWishlistItem = async (itemName) => {
+  const uid = auth.currentUser?.uid;
+  if (!uid) return;
+
+  await updateDoc(doc(db, "users", uid), {
+    wishlistItems: arrayRemove(itemName),
+  });
+};
 
 
