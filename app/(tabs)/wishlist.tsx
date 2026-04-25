@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { auth, db } from "../../firebase";
 import {
   ScrollView,
   StyleSheet,
@@ -49,19 +50,25 @@ export default function WishlistScreen() {
   const [newItem, setNewItem] = useState("");
 
   // Load wishlist on mount
-  useEffect(() => {
-    const load = async () => {
-      const items = await getWishlistItems();
-      setWishlist(
-        items.map((name: string, index: number) => ({
-          id: `${index}-${name}`,
-          name,
-        }))
-      );
-    };
+useEffect(() => {
+  const unsubscribe = auth.onAuthStateChanged(async (user) => {
+    if (!user) {
+      setWishlist([]);
+      return;
+    }
 
-    load();
-  }, []);
+    const items = await getWishlistItems();
+    setWishlist(
+      items.map((name: string, index: number) => ({
+        id: `${index}-${name}`,
+        name,
+      }))
+    );
+  });
+
+  return unsubscribe;
+}, []);
+
 
   // Add item
   const handleAdd = async () => {
