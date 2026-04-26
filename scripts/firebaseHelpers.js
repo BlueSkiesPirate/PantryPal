@@ -1,4 +1,11 @@
-import { doc, getDoc, arrayUnion, arrayRemove, updateDoc, deleteField } from "firebase/firestore";
+import {
+  arrayRemove,
+  arrayUnion,
+  deleteField,
+  doc,
+  getDoc,
+  updateDoc,
+} from "firebase/firestore";
 import { auth, db } from "../firebase"; // adjust path as needed
 
 export async function getUserProfile() {
@@ -40,19 +47,18 @@ The jsonData shouldn't include barcode as it's used as an identifier when deleti
 
 
 */
-  export async function addItem(fieldName,barcode, jsonData){
-    const userDocRef = doc(db, 'users', auth.currentUser.uid);
+export async function addItem(fieldName, barcode, jsonData) {
+  const userDocRef = doc(db, "users", auth.currentUser.uid);
 
-    try{
-      await updateDoc(userDocRef, {
-        [`${fieldName}.${barcode}`]: jsonData
-      });
-      console.log("Product Data Stored");
-
-  }catch (error) {
-      console.error("Error updating document: ", error);
-    }
-    return getUserItems(fieldName);
+  try {
+    await updateDoc(userDocRef, {
+      [`${fieldName}.${barcode}`]: jsonData,
+    });
+    console.log("Product Data Stored");
+  } catch (error) {
+    console.error("Error updating document: ", error);
+  }
+  return getUserItems(fieldName);
 }
 
 /*
@@ -63,22 +69,20 @@ String barcode: a barcode
 Deletes an item with the barcode id in a specified field
 
 */
-  export async function deleteItem(fieldName,barcode)  {
-    const userDocRef = doc(db, 'users', auth.currentUser.uid);
+export async function deleteItem(fieldName, barcode) {
+  const userDocRef = doc(db, "users", auth.currentUser.uid);
 
-    try{
-      await updateDoc(userDocRef, {
-        [`${fieldName}.${barcode}`]: deleteField()
-      });
-      console.log("Deleted/Attempted", barcode);
+  try {
+    await updateDoc(userDocRef, {
+      [`${fieldName}.${barcode}`]: deleteField(),
+    });
+    console.log("Deleted/Attempted", barcode);
+  } catch (error) {
+    console.error("Error deleting document: ", error);
+  }
 
-    }catch (error) {
-      console.error("Error deleting document: ", error);
-    }
-
-    return getUserItems(fieldName);
-  };
-
+  return getUserItems(fieldName);
+}
 
 /*
 getUserItems(fieldName)
@@ -88,9 +92,9 @@ Fetchs data from specified field in firebase
 
 */
 
-  export async function getUserItems(fieldName) {
-    const user = auth.currentUser;
-    if (!user) {
+export async function getUserItems(fieldName) {
+  const user = auth.currentUser;
+  if (!user) {
     console.log("No user is logged in");
     return null;
   }
@@ -105,7 +109,6 @@ Fetchs data from specified field in firebase
   return Object.entries(data).map(([barcode, item]) => ({
     barcode: barcode,
     ...item,
-    
   }));
 }
 
@@ -137,4 +140,3 @@ export const deleteWishlistItem = async (itemName) => {
     wishlistItems: arrayRemove(itemName),
   });
 };
-

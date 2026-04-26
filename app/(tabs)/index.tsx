@@ -1,17 +1,15 @@
 import { Camera, CameraView } from "expo-camera";
-import React, { useState, useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Button,
   Dimensions,
   Image,
   Platform,
-  Text,
   Pressable,
   ScrollView,
   StyleSheet,
+  Text,
   View,
-  TouchableOpacity,
-  FlatList,
 } from "react-native";
 
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
@@ -20,20 +18,18 @@ import { Feather } from "@expo/vector-icons";
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-import {getUserProfile, deleteItem, addItem, getUserItems} from "../../scripts/firebaseHelpers";
+import {
+  addItem,
+  deleteItem,
+  getUserItems,
+} from "../../scripts/firebaseHelpers";
 
+import { doc, updateDoc } from "firebase/firestore";
+import { auth, db } from "../../firebase";
 
-
-
-import { collection, addDoc, getDocs, updateDoc, deleteDoc, doc, query, where } from 'firebase/firestore';
-import { db, auth } from '../../firebase';
-import { get } from "react-native/Libraries/TurboModule/TurboModuleRegistry";
-
-import {getTestData} from "../testData"
+import getTestData from "../testData";
 
 import DateTimePicker from "@react-native-community/datetimepicker";
-
-
 
 const { width, height } = Dimensions.get("window");
 const MENU_WIDTH = width / 3;
@@ -48,60 +44,54 @@ type ItemType = {
   recyabilitySteps: string[];
 };
 
-
-
 export default function HomeScreen() {
-
-  
-  const [date,setDate] = useState(new Date());
+  const [date, setDate] = useState(new Date());
   const [tempDate, setTempDate] = useState(new Date());
   const [show, setShow] = useState(false);
-  const [mode, setMode] = useState<'date' | 'time' | 'datetime'>('date');
-  const [selectedItem, setSelectedItem] = useState<(ItemType & { barcode: string }) | null>(null);
-
-
-  
-
+  const [mode, setMode] = useState<"date" | "time" | "datetime">("date");
+  const [selectedItem, setSelectedItem] = useState<
+    (ItemType & { barcode: string }) | null
+  >(null);
 
   const showMode = (modeToShow) => {
     console.log("Pressed");
     setShow(true);
     setMode(modeToShow);
-  }
+  };
 
-  const moveToInventory = async (item: ItemType & { barcode: string }, expDate: Date) => {
+  const moveToInventory = async (
+    item: ItemType & { barcode: string },
+    expDate: Date,
+  ) => {
     setDate(new Date());
     setSelectedItem(null);
-  try {
-    const user = auth.currentUser;
-    if (!user) return;
+    try {
+      const user = auth.currentUser;
+      if (!user) return;
 
-    const userDocRef = doc(db, "users", user.uid); // adjust path to match your Firestore structure
-    console.log(item);
+      const userDocRef = doc(db, "users", user.uid); // adjust path to match your Firestore structure
+      console.log(item);
 
-    await updateDoc(userDocRef, {
-      [`inventory.${item.barcode}`]: {
-        productName: item.productName,
-        productBrand: item.productBrand,
-        image: item.image,
-        ingredients: item.ingredients,
-        allergies: item.allergies,
-        recyabilitySteps: item.recyabilitySteps || [],
-        expDate: expDate,
-        dateMoved: new Date(),
-      }
-    });
+      await updateDoc(userDocRef, {
+        [`inventory.${item.barcode}`]: {
+          productName: item.productName,
+          productBrand: item.productBrand,
+          image: item.image,
+          ingredients: item.ingredients,
+          allergies: item.allergies,
+          recyabilitySteps: item.recyabilitySteps || [],
+          expDate: expDate,
+          dateMoved: new Date(),
+        },
+      });
 
-    console.log("Moved to inventory:", item.barcode);
-  } catch (error) {
-    console.error("Error moving to inventory:", error);
-  }
+      console.log("Moved to inventory:", item.barcode);
+    } catch (error) {
+      console.error("Error moving to inventory:", error);
+    }
 
-  delUpdate(item.barcode);
-};
-
-
-
+    delUpdate(item.barcode);
+  };
 
   const [barcodeNumber, setBarcodeNumber] = useState(""); // should be safe to del, i'll look it over again ltr maybe
   const [menuOpen, setMenuOpen] = useState(false);
@@ -119,97 +109,103 @@ export default function HomeScreen() {
   const [message, setMessage] = useState(false);
   // const [permission, requestPermission] = useCameraPermissions();
 
+  const [rateLimited, setRateLimited] = useState(false);
+  const [rateLimitMessage, setRateLimitMessage] = useState("");
 
   const [storedItems, setStoredItems] = useState<any>([]);
   const user = auth.currentUser;
   const isProcessing = useRef(false);
 
- useEffect(() => {
-  const unsubscribe = auth.onAuthStateChanged((user) => {
-    if (!user) {
-      setStoredItems([]);
-      return;
+  const [lastApiCall, setLastApiCall] = useState<number>(0);
+  const API_RATE_LIMIT_DELAY = 2000; // 2 seconds between API calls
+
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      if (!user) {
+        setStoredItems([]);
+        return;
+      }
+
+      const load = async () => {
+        const items = await getUserItems(`storedItems`);
+        setStoredItems(items);
+      };
+
+      load();
+    });
+
+    return unsubscribe;
+  }, []);
+
+  const delUpdate = async (barcode: number) => {
+    setStoredItems((prev) => prev.filter((item) => item.barcode !== barcode));
+
+    try {
+      await deleteItem(`storedItems`, barcode);
+    } catch (error) {
+      console.error("Error deleting item:", error);
     }
+  };
 
-    const load = async () => {
-      const items = await getUserItems(`storedItems`);
-      setStoredItems(items);
-    };
-
-    load();
-  });
-
-  return unsubscribe;
-}, []);
-
-const delUpdate = async (barcode: number) => {
-  
-  setStoredItems(prev =>
-    prev.filter(item => item.barcode !== barcode)
-  );
-  
-  try{
-  await deleteItem(`storedItems`,barcode);
-  }catch (error) {
-    console.error("Error deleting item:", error);
-  }
-
-}
-
-
-  const handleBarCodeScanned = async ({ type, data }: { type: any; data: any }) => {
-    console.log("IT RAN")
+  const handleBarCodeScanned = async ({
+    type,
+    data,
+  }: {
+    type: any;
+    data: any;
+  }) => {
+    console.log("IT RAN");
     if (isProcessing.current) return; // stops my quota from being maxxed out frm 1 call
 
     if (!auth.currentUser) {
       console.log("User not logged in, cannot scan.");
       return;
     }
-    
+
     isProcessing.current = true;
     setScanData(true);
     console.log("Type: " + type);
     console.log("Data: " + data);
+    console.log("Data type:", typeof data);
+    console.log("Data as string:", String(data));
     setBarcodeNumber(data);
-  //  console.log("BN:", barcodeNumber);
+    //  console.log("BN:", barcodeNumber);
 
     await AiResponse(data);
   };
 
   //pass it to ai, since it'll now have the barcode var saved
   const barcodeAlert = () => {
-   
-      console.log(barcodeNumber); // 
-      console.log(AiResponse );
-      getTestData();
-      /*
+    console.log(barcodeNumber); //
+    console.log(AiResponse);
+    getTestData();
+    /*
       console.log("FB Raw" ,getUserProfile());
       console.log("FB->ARRAY" ,storedItems);
       storedItems.map((item: ItemType) => console.log("Stored item:", item));
       */
-  
+
     //functionality of the ai
   };
 
-  useEffect(() =>{
+  useEffect(() => {
     //Request perms for the camera
-    (async() => {
-      if (Platform.OS ==="web") {
+    (async () => {
+      if (Platform.OS === "web") {
         setHasPermission(true);
       } else {
-        const {status} = await Camera.requestCameraPermissionsAsync();
-        setHasPermission(status === 'granted');
+        const { status } = await Camera.requestCameraPermissionsAsync();
+        setHasPermission(status === "granted");
       }
     })();
-  }, [] );
+  }, []);
 
-  
   if (!hasPermission) {
     return (
-      <View style = {styles.container}>
+      <View style={styles.container}>
         <Text> Grant permisision to the app</Text>
       </View>
-    )
+    );
   }
 
   //Setup some stuff if you want to pull into the item/call it
@@ -225,34 +221,63 @@ const delUpdate = async (barcode: number) => {
     barcodeUrl: string;
   }
 
-
-
-
   //Returns the entire interface. e.g. use .name to retrieve it.
   //If it doesnt exist, it needs to be able to say that it doesnt exist in the database
   //Will require multiple ai calls then
-  const getProductData = async (barcode: string) => {
-    //Barcode number
-    
-    const go_upc_api_key: string = process.env.EXPO_PUBLIC_GO_UPC_KEY!
-    const api_base_url = "https://go-upc.com/api/v1/code/"
+  const getProductData = async (barcode: string, retryCount = 0) => {
+    const MAX_RETRIES = 3;
+    const BASE_DELAY = 1000; // 1 second
 
-    const url: string = api_base_url + barcode + "?key=" + go_upc_api_key
-    
-    console.log("GOUPC:",url); 
-    
+    // Rate limiting check
+    const now = Date.now();
+    const timeSinceLastCall = now - lastApiCall;
+    if (timeSinceLastCall < API_RATE_LIMIT_DELAY) {
+      const waitTime = API_RATE_LIMIT_DELAY - timeSinceLastCall;
+      console.log(`Rate limiting: waiting ${waitTime}ms before API call`);
+      await new Promise((resolve) => setTimeout(resolve, waitTime));
+    }
+    setLastApiCall(Date.now());
+
+    //Barcode number
+
+    const go_upc_api_key: string = process.env.EXPO_PUBLIC_GO_UPC_KEY!;
+    const api_base_url = "https://go-upc.com/api/v1/code/";
+
+    console.log("Barcode input:", barcode);
+    console.log("Barcode type:", typeof barcode);
+    console.log("Barcode length:", barcode?.length);
+
+    // Ensure barcode is a string
+    const barcodeString = String(barcode).trim();
+
+    const url: string = api_base_url + barcodeString + "?key=" + go_upc_api_key;
+
+    console.log("GOUPC:", url);
+
     const response = await fetch(url);
 
     //checking if information is retrieved, if not error.
     if (!response.ok) {
+      if (response.status === 429 && retryCount < MAX_RETRIES) {
+        const delay = BASE_DELAY * Math.pow(2, retryCount); // Exponential backoff
+        console.log(
+          `Rate limited. Retrying in ${delay}ms (attempt ${retryCount + 1}/${MAX_RETRIES})`,
+        );
+        await new Promise((resolve) => setTimeout(resolve, delay));
+        return getProductData(barcode, retryCount + 1);
+      }
+      if (response.status === 429) {
+        throw new Error(
+          `Rate limit exceeded! Too many requests to go-upc API. Please wait a few minutes before trying again.`,
+        );
+      }
       throw new Error(`HTTP error for go-upc! status: ${response.status}`);
     }
 
     //Might be able to cut out the middle man
     const go_upc_data: GoUpcAPIResponse = await response.json();
     return go_upc_data;
-    
-  }
+  };
 
   //Google section/gemini ai api section
   const google_api_key = process.env.EXPO_PUBLIC_GEMINI_KEY!;
@@ -260,17 +285,18 @@ const delUpdate = async (barcode: number) => {
   //used to initialize the google ai sdk
   const ai = new GoogleGenerativeAI(google_api_key);
 
+  const AiResponse = async (barcode: string) => {
+    console.log("AiResponse called with barcode:", barcode);
+    console.log("Barcode type in AiResponse:", typeof barcode);
 
-  const AiResponse = async(barcode: string) =>{
     const user = auth.currentUser;
-    if (!user){
+    if (!user) {
       console.log("Not logged in, cant fetch profile.");
       return;
     }
 
     try {
-      
-    //---------------------No more api calls--------------------------------------  
+      //---------------------No more api calls--------------------------------------
       const productData = await getProductData(barcode);
 
       //Variables to store into the prompt for later usage
@@ -280,25 +306,10 @@ const delUpdate = async (barcode: number) => {
       const imageUrl = productData.product.imageUrl;
       const ingredients = productData.product.ingredients;
 
-    
-    //---------------I RANOUT API QUOTA+ also slow---------------------------------------------
-/*
-    const prompt = `Based off of ${productName}, ${productBrand}, ${productCategory}, ${imageUrl} and barcode of ${barcodeNumber}, convert it into a JSON object with the following structure. 
-    You can elaborate on the recyability stpes if necessary but, be simple. 
-    Don't respond with anything except the JSON object:
-{
-"productName": $productName,
-"productBrand": $productBrand,
-"image": $imageUrl, //
-"ingredients": [],
-"allergies": [],
-"recylabilitySteps": []
-}`
-*/
-const prompt = `Based off of ${productName}, ${productBrand}, ${productCategory}, ${imageUrl} and barcode of ${barcodeNumber}
+      const prompt = `Based off of ${productName}, ${productBrand}, ${productCategory}, ${imageUrl} and barcode of ${barcodeNumber}
 , Give me the recyability steps, be simple. Don't respond execpt for the recyability steps in a list format sepreated by commas, i'll be putting it into an array. " "," ", ... " ".
 
-`
+`;
 
       //Will need a way to go through the response to format the text accordingly.
       /*
@@ -307,52 +318,50 @@ const prompt = `Based off of ${productName}, ${productBrand}, ${productCategory}
       gemini-3-flash-preview
       */
 
-      const model = ai.getGenerativeModel({ model: "gemini-3.1-flash-lite-preview" });
+      const model = ai.getGenerativeModel({
+        model: "gemini-3.1-flash-lite-preview",
+      });
       const result = await model.generateContent(prompt);
       //Must store this now instead of console.log
       const response: string = result.response.text();
 
-
-      
-    
-   //   setAIResponse(response); // <- Is this used for anything?
-   /*   
       const formattedResponse = `{
       "productName": "${productName}",
-"productBrand": "${productBrand}",
-"image": "${imageUrl}", 
-"ingredients": ${ingredients},
-"allergies": [],
-"recylabilitySteps": [${(await model.generateContent(prompt)).response.text()} ]
+      "productBrand": "${productBrand}",
+      "image": "${imageUrl}", 
+      "ingredients": ${JSON.stringify(ingredients)},
+      "allergies": [],
+      "recylabilitySteps": [${(await model.generateContent(prompt)).response.text()} ]
       
-      }`*/
-      const formattedResponse = `{
-      "productName": "${productName}",
-"productBrand": "${productBrand}",
-"image": "${imageUrl}", 
-"ingredients": "[${ingredients?.text.split(',')}]",
-"allergies": [],
-"recylabilitySteps": [${(await model.generateContent(prompt)).response.text()} ]
-      
-      }`
-      
-console.log("FR", formattedResponse)
+      }`;
 
+      console.log("FR", formattedResponse);
 
-      await addItem(`storedItems`,barcodeNumber,JSON.parse(formattedResponse));
-      setStoredItems(await getUserItems(`storedItems`))
+      await addItem(
+        `storedItems`,
+        barcodeNumber,
+        JSON.parse(formattedResponse),
+      );
+      setStoredItems(await getUserItems(`storedItems`));
       // Refresh the stored items list
-     
-
-
-
-
     } catch (error) {
       console.error(error);
-      
-    } 
-  }
-/*
+      if (
+        error instanceof Error &&
+        error.message.includes("Rate limit exceeded")
+      ) {
+        setRateLimited(true);
+        setRateLimitMessage(
+          "API rate limit reached. Please wait a few minutes before scanning again.",
+        );
+        setTimeout(() => {
+          setRateLimited(false);
+          setRateLimitMessage("");
+        }, 60000); // Reset after 1 minute
+      }
+    }
+  };
+  /*
   const items: ItemType[] = useMemo(
     () => [
       {
@@ -363,14 +372,6 @@ console.log("FR", formattedResponse)
     ],
     [info], // Add 'info' to dependency array so it updates when info changes
   );*/
-
-
-  
-
-
-
-
-
 
   return (
     <SafeAreaProvider>
@@ -443,166 +444,157 @@ console.log("FR", formattedResponse)
                       "pdf417",
                     ],
                   }}
-                    onBarcodeScanned={scanData ? undefined : handleBarCodeScanned}
-                        />
-                        {scanData && (
-                          <Button
-                            title="Clck To Scan Again"
-                            onPress={() => {setScanData(false); isProcessing.current = false;}
-                              
-                            }
-                            color="#241584"
-                          />
-                        )}
-         
-                       <Button title="barcode test" onPress={barcodeAlert} />
-                      <Button title={message ? "Loading..." : "Gett Data"} disabled={message} onPress={AiResponse} />
+                  onBarcodeScanned={
+                    scanData || rateLimited ? undefined : handleBarCodeScanned
+                  }
+                />
+                {rateLimited && (
+                  <View style={styles.rateLimitOverlay}>
+                    <Text style={styles.rateLimitText}>{rateLimitMessage}</Text>
+                  </View>
+                )}
+                {scanData && (
+                  <Button
+                    title="Clck To Scan Again"
+                    onPress={() => {
+                      setScanData(false);
+                      isProcessing.current = false;
+                    }}
+                    color="#241584"
+                  />
+                )}
 
-                      </View>
-                  
-                    </View>
+                <Button title="barcode test" onPress={barcodeAlert} />
+                <Button
+                  title={message ? "Loading..." : "Get Data"}
+                  disabled={message}
+                  onPress={AiResponse}
+                />
+                <Button
+                  title={message ? "Loading..." : "Get test data"}
+                  disabled={message}
+                  onPress={getTestData}
+                />
+              </View>
+            </View>
 
             {/* Bottom Portion */}
 
-
-
-              <View style={styles.bottomSection}>
+            <View style={styles.bottomSection}>
               <ScrollView
                 style={styles.scrollArea}
                 contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
               >
-                {
-                auth.currentUser && storedItems?.map((item: ItemType & { barcode: string }) => (
+                {auth.currentUser &&
+                  storedItems?.map((item: ItemType & { barcode: string }) => (
+                    <View key={item.barcode} style={styles.listRow}>
+                      <View style={styles.leftRowContent}>
+                        <Image
+                          source={{ uri: item.image }}
+                          style={styles.itemImage}
+                        />
+                        <View>
+                          <Text style={styles.itemName}>
+                            {item.productName}
+                          </Text>
+                          <Text style={styles.itemBrand}>
+                            {item.productBrand}
+                          </Text>
+                        </View>
+                      </View>
 
-              
+                      <View style={styles.rowIcons}>
+                        <Pressable
+                          style={styles.rowIconBtn}
+                          onPress={() => delUpdate(item.barcode)}
+                        >
+                          <Feather name="trash-2" size={20} color="black" />
+                        </Pressable>
 
-                  <View key={item.barcode} style={styles.listRow}>
-                    <View style={styles.leftRowContent}>
-                      <Image source={{ uri: item.image }} style={styles.itemImage} />
-                      <View>
-
-
-
-                        <Text style={styles.itemName}>{item.productName}</Text>
-                        <Text style={styles.itemBrand}>{item.productBrand}</Text>
+                        <Pressable
+                          style={styles.rowIconBtn}
+                          onPress={() => {
+                            showMode("date");
+                            setSelectedItem(item);
+                          }}
+                        >
+                          <Feather name="arrow-right" size={20} color="black" />
+                        </Pressable>
                       </View>
                     </View>
-
-                    <View style={styles.rowIcons}>
-                      <Pressable 
-                        style={styles.rowIconBtn}
-                        onPress={() => delUpdate(item.barcode)}
-                      >
-                        <Feather name="trash-2" size={20} color="black" />
-                      </Pressable>
-
-
-                      <Pressable style={styles.rowIconBtn} 
-                      onPress={()=> {showMode("date");setSelectedItem(item)}}>
-                      
-
-                        <Feather name="arrow-right" size={20} color="black" />
-                      </Pressable>
-
-                        
-
-
-
-                    </View>
-                  </View>
-                  
-                ))}
+                  ))}
               </ScrollView>
-              
-              
-
-
-
-
-
-
-
-
-
-      
-
-    </View>
-  
-</View>
-
-    
             </View>
-          
+          </View>
+        </View>
+      </SafeAreaView>
+
+      {/** THIS BLOCK IS FOR THE DATE SELECTOR FOR EXPIRATION DATE + MOVES ITEM FROM STORED->INVENTORY */}
+      {show && (
+        <SafeAreaView style={{ flex: 1, padding: 16 }}>
+          <Text style={{ marginBottom: 10 }}>
+            Please select the expiration date:
+          </Text>
+
+          <DateTimePicker
+            value={date}
+            mode={mode}
+            is24Hour={true}
+            onChange={(event, selectedDate) => {
+              console.log("ran1", barcodeNumber);
+              if (selectedDate) {
+                setDate(selectedDate);
+                console.log("ran2");
+              }
+            }}
+          />
+
+          {/* Buttons */}
+          <View
+            style={{
+              marginTop: 20,
+              flexDirection: "row",
+              justifyContent: "space-between",
+            }}
+          >
+            <Button
+              title="Confirm"
+              onPress={() => {
+                moveToInventory(selectedItem, date);
+                setShow(false);
+              }}
+            />
+
+            <Button
+              title="Add later"
+              onPress={() => {
+                moveToInventory(selectedItem, null);
+                setShow(false);
+              }}
+            />
+          </View>
         </SafeAreaView>
-
-        {/** THIS BLOCK IS FOR THE DATE SELECTOR FOR EXPIRATION DATE + MOVES ITEM FROM STORED->INVENTORY */}
-       {show && (
-  <SafeAreaView style={{ flex: 1, padding: 16 }}>
-    <Text style={{ marginBottom: 10 }}>
-      Please select the expiration date:
-    </Text>
-
-    <DateTimePicker
-      value={date}
-      mode={mode}
-      is24Hour={true}
-      onChange={(event, selectedDate) => {
-        console.log("ran1",barcodeNumber);
-        if (selectedDate) {
-          setDate(selectedDate);
-          console.log("ran2");
-        }
-      }}
-    />
-
-    {/* Buttons */}
-    <View style={{ marginTop: 20, flexDirection: "row", justifyContent: "space-between" }}>
-      
-      <Button
-        title="Confirm"
-        onPress={() => {
-          moveToInventory(selectedItem,date)  
-          setShow(false);      
-        }}
-      />
-
-      <Button
-        title="Add later"
-        onPress={() => {
-          
-          moveToInventory(selectedItem,null)      
-          setShow(false);      
-        }}
-      />
-
-    </View>
-  </SafeAreaView>
-)}
-{/*BLOCK CLOSE */}
-        
-        
-      
+      )}
+      {/*BLOCK CLOSE */}
     </SafeAreaProvider>
   );
 }
 
 const styles = StyleSheet.create({
-
-    todoContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  todoContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginVertical: 10,
-    width: '100%',
-  },  mainTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    marginBottom: 10, // Adjust spacing as needed
-    color: '#333', // Choose a color that fits your app theme
+    width: "100%",
   },
-
-
+  mainTitle: {
+    fontSize: 28,
+    fontWeight: "bold",
+    marginBottom: 10, // Adjust spacing as needed
+    color: "#333", // Choose a color that fits your app theme
+  },
 
   safeArea: {
     flex: 1,
@@ -770,6 +762,24 @@ const styles = StyleSheet.create({
   },
   rowIconBtn: {
     padding: 6,
+  },
+
+  rateLimitOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0,0,0,0.7)",
+    justifyContent: "center",
+    alignItems: "center",
+    borderRadius: 22,
+  },
+  rateLimitText: {
+    color: "white",
+    fontSize: 16,
+    textAlign: "center",
+    padding: 20,
   },
 
   bottomNavbar: {

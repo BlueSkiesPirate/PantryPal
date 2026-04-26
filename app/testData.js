@@ -1,16 +1,16 @@
-import {getUserProfile, deleteStoredItem, addStoredItem, getUserStoredItems} from "../scripts/firebaseHelpers";
-
+import { addItem } from "../scripts/firebaseHelpers";
 
 //----------------I RANOUT API QUOTA+ also slow---------------------------------------------
 
-      export async function getTestData(){
-      const productName = "Watermelon";
-    const productBrand = "Dole";
-    const imageUrl = "https://upload.wikimedia.org/wikipedia/commons/thumb/f/fd/Watermelon_cross_BNC.jpg/2560px-WatermelMMMon_cross_BNC.jpg"; 
-    
-      const response = `abd`;
+export default async function getTestData() {
+  const productName = "Watermelon";
+  const productBrand = "Dole";
+  const imageUrl =
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/f/fd/Watermelon_cross_BNC.jpg/2560px-WatermelMMMon_cross_BNC.jpg";
 
-      const response1 = `{
+  const response = `abd`;
+
+  const response1 = `{
   "productName": "Peanuts",
   "productBrand": "Some brand",
   "image": "https://go-upc.s3.amazonaws.com/images/243416799.jpeg",
@@ -29,7 +29,7 @@ import {getUserProfile, deleteStoredItem, addStoredItem, getUserStoredItems} fro
   "allergies": [],
   "recylabilitySteps": []
 }`;
-      const response2 = `{
+  const response2 = `{
   "productName": "CocaCola",
   "productBrand": "Cocola Company",
   "image": "https://go-upc.s3.amazonaws.com/images/357597180.jpeg",
@@ -45,7 +45,7 @@ import {getUserProfile, deleteStoredItem, addStoredItem, getUserStoredItems} fro
   "allergies": [],
   "recylabilitySteps": []
 }`;
-      const response3 = `{
+  const response3 = `{
   "productName": "Pringles",
   "productBrand": "Pringles",
   "image": "https://go-upc.s3.amazonaws.com/images/160913905.jpeg",
@@ -79,7 +79,7 @@ import {getUserProfile, deleteStoredItem, addStoredItem, getUserStoredItems} fro
   "allergies": [],
   "recylabilitySteps": []
 }`;
-      const response4 = `{
+  const response4 = `{
   "productName": "Cheetos",
   "productBrand": "Lays",
   "image": "https://go-upc.s3.amazonaws.com/images/81629821.png",
@@ -91,11 +91,9 @@ import {getUserProfile, deleteStoredItem, addStoredItem, getUserStoredItems} fro
   "allergies": [],
   "recylabilitySteps": []
 }`;
-      
-    
 
-      await addStoredItem("181174000390", JSON.parse(response1));
-      await addStoredItem("5449000000996", JSON.parse(response2));
-      await addStoredItem("00038000183690", JSON.parse(response3));
-      await addStoredItem("00028400157483", JSON.parse(response4));
-      }
+  await addItem("storedItems", "181174000390", JSON.parse(response1));
+  await addItem("storedItems", "5449000000996", JSON.parse(response2));
+  await addItem("storedItems", "00038000183690", JSON.parse(response3));
+  await addItem("storedItems", "00028400157483", JSON.parse(response4));
+}

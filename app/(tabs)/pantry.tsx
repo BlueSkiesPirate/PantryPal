@@ -1,9 +1,11 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   Animated,
   Easing,
+  Image,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -13,6 +15,12 @@ import {
   View,
 } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+
+//For firebase:
+import { db } from "@/firebase";
+import { getAuth } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
+
 type ExpiryStatus = "fresh" | "soon" | "urgent";
 
 type PantryItem = {
@@ -21,135 +29,15 @@ type PantryItem = {
   category: string;
   daysLeft: number;
   status: ExpiryStatus;
-  expDate: string;
+  expDate?: string;
   information: string;
+  image: string;
 };
 
 const FILTERS = ["All", "add", "fridge", "pantry"] as const;
 type FilterType = (typeof FILTERS)[number];
 
-const expiringSoonData: PantryItem[] = [
-  {
-    id: "e1",
-    name: "hotdog bread",
-    category: "pantry",
-    daysLeft: 1,
-    status: "urgent",
-    expDate: "Apr 13",
-    information: "Use soon for sandwiches or toast.",
-  },
-  {
-    id: "e2",
-    name: "peanut butter",
-    category: "pantry",
-    daysLeft: 2,
-    status: "urgent",
-    expDate: "Apr 14",
-    information: "Still safe, but near your custom alert date.",
-  },
-  {
-    id: "e3",
-    name: "spinach",
-    category: "fridge",
-    daysLeft: 2,
-    status: "urgent",
-    expDate: "Apr 14",
-    information: "Best for salads or cooking today.",
-  },
-  {
-    id: "e4",
-    name: "strawberries",
-    category: "fridge",
-    daysLeft: 3,
-    status: "soon",
-    expDate: "Apr 15",
-    information: "Check for soft spots before eating.",
-  },
-  {
-    id: "e5",
-    name: "milk",
-    category: "fridge",
-    daysLeft: 1,
-    status: "urgent",
-    expDate: "Apr 13",
-    information: "Use for breakfast or smoothies first.",
-  },
-];
-
-const pantryItemsData: PantryItem[] = [
-  {
-    id: "p1",
-    name: "burger bread",
-    category: "pantry",
-    daysLeft: 4,
-    status: "soon",
-    expDate: "Apr 16",
-    information: "Great with burgers or toasted sandwiches.",
-  },
-  {
-    id: "p2",
-    name: "burger bread",
-    category: "pantry",
-    daysLeft: 7,
-    status: "fresh",
-    expDate: "Apr 19",
-    information: "Store sealed to keep it soft longer.",
-  },
-  {
-    id: "p3",
-    name: "apples",
-    category: "fridge",
-    daysLeft: 5,
-    status: "fresh",
-    expDate: "Apr 17",
-    information: "Crisp and ready for snacks.",
-  },
-  {
-    id: "p4",
-    name: "yogurt",
-    category: "fridge",
-    daysLeft: 2,
-    status: "urgent",
-    expDate: "Apr 14",
-    information: "Eat soon after opening.",
-  },
-  {
-    id: "p5",
-    name: "rice",
-    category: "pantry",
-    daysLeft: 30,
-    status: "fresh",
-    expDate: "May 12",
-    information: "Dry pantry item with longer shelf life.",
-  },
-  {
-    id: "p6",
-    name: "eggs",
-    category: "fridge",
-    daysLeft: 6,
-    status: "soon",
-    expDate: "Apr 18",
-    information: "Good for breakfast or baking.",
-  },
-  {
-    id: "p7",
-    name: "bananas",
-    category: "pantry",
-    daysLeft: 2,
-    status: "urgent",
-    expDate: "Apr 14",
-    information: "Freeze extras for smoothies.",
-  },
-  {
-    id: "p8",
-    name: "cheese",
-    category: "fridge",
-    daysLeft: 4,
-    status: "soon",
-    expDate: "Apr 16",
-    information: "Keep tightly wrapped after use.",
-  },
-];
+const expiringSoonData: PantryItem[] = [];
 
 const getStatusColor = (status: ExpiryStatus) => {
   switch (status) {
@@ -163,6 +51,8 @@ const getStatusColor = (status: ExpiryStatus) => {
       return "#cfcfcf";
   }
 };
+
+//THIS IS WHAT POPULATES THE PANTRY PAGE ---------------------------------------------
 
 const ItemCard = ({
   item,
@@ -178,7 +68,10 @@ const ItemCard = ({
       style={styles.card}
     >
       <View style={styles.cardImageArea}>
-        <Text style={styles.imagePlaceholderText}>image</Text>
+        <Image
+          source={{ uri: item.image }}
+          style={{ width: 100, height: 100 }}
+        />
       </View>
       <View
         style={[
@@ -194,6 +87,7 @@ const ItemCard = ({
   );
 };
 
+//THIS PART handles the popup when the item is clicked---------------------------------
 const ItemDetailModal = ({
   item,
   visible,
@@ -244,13 +138,82 @@ const ItemDetailModal = ({
   );
 };
 
+//MAIN PAGE DEFINITION -----------------------------------------------------------------------
+
 export default function PantryScreen() {
   const [selectedFilter, setSelectedFilter] = useState<FilterType>("All");
   const [search, setSearch] = useState("");
   const [selectedItem, setSelectedItem] = useState<PantryItem | null>(null);
   const [isDetailVisible, setIsDetailVisible] = useState(false);
   const slideAnim = useRef(new Animated.Value(320)).current;
+
+  const [items, setItems] = useState<PantryItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
+
+  const pantryItemsData: PantryItem[] = items;
+
+  const filteredPantryItems = useMemo(() => {
+    return pantryItemsData.filter((item) => {
+      const matchesSearch = item.name
+        .toLowerCase()
+        .includes(search.toLowerCase());
+      const matchesFilter =
+        selectedFilter === "All" ||
+        item.category.toLowerCase() === selectedFilter.toLowerCase();
+
+      return matchesSearch && matchesFilter;
+    });
+  }, [items, search, selectedFilter]);
+
+  useEffect(() => {
+    async function fetchItems() {
+      try {
+        const auth = getAuth();
+        const user = auth.currentUser;
+        if (!user) {
+          console.log("USer not logged in");
+          return;
+        }
+        const userRef = doc(db, "users", user.uid);
+        const userSnap = await getDoc(userRef);
+
+        if (userSnap.exists()) {
+          const userData = userSnap.data();
+          const raw = userData.storedItems || {};
+
+          const data: PantryItem[] = Object.entries(raw).map(
+            ([id, item]: [string, any]) => ({
+              id,
+              name: item.productName || "Unnamed",
+              category: item.category || "pantry",
+              daysLeft: item.daysLeft || 0,
+              status: item.status || "fresh",
+              expDate: item.expDate || "",
+              information: item.information || "",
+              image: item.image || "",
+              allergies: item.allergies || [],
+            }),
+          );
+
+          console.log("storedItems array:", data);
+          setItems(data);
+
+          console.log("storedItems:", data);
+          setItems(data);
+        }
+      } catch (error) {
+        console.log("Error fetching pantry items:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchItems();
+  }, []);
+  if (loading) {
+    return <ActivityIndicator />;
+  }
 
   const openDetail = (item: PantryItem) => {
     setSelectedItem(item);
@@ -277,19 +240,6 @@ export default function PantryScreen() {
       }
     });
   };
-
-  const filteredPantryItems = useMemo(() => {
-    return pantryItemsData.filter((item) => {
-      const matchesSearch = item.name
-        .toLowerCase()
-        .includes(search.toLowerCase());
-      const matchesFilter =
-        selectedFilter === "All" ||
-        item.category.toLowerCase() === selectedFilter.toLowerCase();
-
-      return matchesSearch && matchesFilter;
-    });
-  }, [search, selectedFilter]);
 
   return (
     <SafeAreaProvider>
