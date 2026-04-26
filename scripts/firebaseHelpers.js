@@ -19,30 +19,56 @@ export async function getUserProfile() {
     return null;
   }
 }
+/*
+--------------------------------------------------------------------
+For: addItem , delItem, getUserItems
+Use to access storedItems and inventory, I have not tested it with 
+other fields nor is it intended to be.
 
 
-  export async function addStoredItem(barcode, jsonData){
+--------------------------------------------------------------------
+*/
+
+/*
+addItem(fieldName)
+String fieldName: Firebase fieldName. 
+String barcode: a barcode
+String jsonData: a string in json format to be sent to firebase
+
+Adds an item to the a field. 
+The jsonData shouldn't include barcode as it's used as an identifier when deleting.
+
+
+*/
+  export async function addItem(fieldName,barcode, jsonData){
     const userDocRef = doc(db, 'users', auth.currentUser.uid);
 
     try{
       await updateDoc(userDocRef, {
-        [`storedItems.${barcode}`]: jsonData
+        [`${fieldName}.${barcode}`]: jsonData
       });
       console.log("Product Data Stored");
 
   }catch (error) {
       console.error("Error updating document: ", error);
     }
-    return getUserStoredItems();
+    return getUserItems(fieldName);
 }
 
+/*
+deleteItem(fieldName)
+String fieldName: Firebase fieldName. 
+String barcode: a barcode
 
-  export async function deleteStoredItem(barcode)  {
+Deletes an item with the barcode id in a specified field
+
+*/
+  export async function deleteItem(fieldName,barcode)  {
     const userDocRef = doc(db, 'users', auth.currentUser.uid);
 
     try{
       await updateDoc(userDocRef, {
-        [`storedItems.${barcode}`]: deleteField()
+        [`${fieldName}.${barcode}`]: deleteField()
       });
       console.log("Deleted/Attempted", barcode);
 
@@ -50,10 +76,19 @@ export async function getUserProfile() {
       console.error("Error deleting document: ", error);
     }
 
-    return getUserStoredItems();
+    return getUserItems(fieldName);
   };
 
-  export async function getUserStoredItems() {
+
+/*
+getUserItems(fieldName)
+String fieldName: Firebase fieldName; Ex. email,createdAt,storedItems,inventory, etc.
+
+Fetchs data from specified field in firebase
+
+*/
+
+  export async function getUserItems(fieldName) {
     const user = auth.currentUser;
     if (!user) {
     console.log("No user is logged in");
@@ -65,16 +100,11 @@ export async function getUserProfile() {
 
   if (!docSnap.exists()) return [];
 
-  const stored = docSnap.data().storedItems || {};
+  const data = docSnap.data()?.[fieldName] || {};
 
-  return Object.entries(stored).map(([barcode, item]) => ({
+  return Object.entries(data).map(([barcode, item]) => ({
     barcode: barcode,
-    productName: item.productName,
-    productBrand: item.productBrand,
-    image: item.image,
-    ingredients: item.ingredients,
-    allergies: item.allergies,
-    recyabilitySteps: item.recyabilitySteps,
+    ...item,
     
   }));
 }
@@ -107,5 +137,4 @@ export const deleteWishlistItem = async (itemName) => {
     wishlistItems: arrayRemove(itemName),
   });
 };
-
 

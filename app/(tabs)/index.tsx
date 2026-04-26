@@ -20,7 +20,7 @@ import { Feather } from "@expo/vector-icons";
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-import {getUserProfile, deleteStoredItem, addStoredItem, getUserStoredItems} from "../../scripts/firebaseHelpers";
+import {getUserProfile, deleteItem, addItem, getUserItems} from "../../scripts/firebaseHelpers";
 
 
 
@@ -28,6 +28,10 @@ import {getUserProfile, deleteStoredItem, addStoredItem, getUserStoredItems} fro
 import { collection, addDoc, getDocs, updateDoc, deleteDoc, doc, query, where } from 'firebase/firestore';
 import { db, auth } from '../../firebase';
 import { get } from "react-native/Libraries/TurboModule/TurboModuleRegistry";
+
+import {getTestData} from "../testData"
+
+import DateTimePicker from "@react-native-community/datetimepicker";
 
 
 
@@ -48,8 +52,55 @@ type ItemType = {
 
 export default function HomeScreen() {
 
-  //00028400157483
-  //5449000000996
+  
+  const [date,setDate] = useState(new Date());
+  const [tempDate, setTempDate] = useState(new Date());
+  const [show, setShow] = useState(false);
+  const [mode, setMode] = useState<'date' | 'time' | 'datetime'>('date');
+  const [selectedItem, setSelectedItem] = useState<(ItemType & { barcode: string }) | null>(null);
+
+
+  
+
+
+  const showMode = (modeToShow) => {
+    console.log("Pressed");
+    setShow(true);
+    setMode(modeToShow);
+  }
+
+  const moveToInventory = async (item: ItemType & { barcode: string }, expDate: Date) => {
+    setDate(new Date());
+    setSelectedItem(null);
+  try {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    const userDocRef = doc(db, "users", user.uid); // adjust path to match your Firestore structure
+    console.log(item);
+
+    await updateDoc(userDocRef, {
+      [`inventory.${item.barcode}`]: {
+        productName: item.productName,
+        productBrand: item.productBrand,
+        image: item.image,
+        ingredients: item.ingredients,
+        allergies: item.allergies,
+        recyabilitySteps: item.recyabilitySteps || [],
+        expDate: expDate,
+        dateMoved: new Date(),
+      }
+    });
+
+    console.log("Moved to inventory:", item.barcode);
+  } catch (error) {
+    console.error("Error moving to inventory:", error);
+  }
+
+  delUpdate(item.barcode);
+};
+
+
 
 
   const [barcodeNumber, setBarcodeNumber] = useState(""); // should be safe to del, i'll look it over again ltr maybe
@@ -81,7 +132,7 @@ export default function HomeScreen() {
     }
 
     const load = async () => {
-      const items = await getUserStoredItems();
+      const items = await getUserItems(`storedItems`);
       setStoredItems(items);
     };
 
@@ -98,23 +149,12 @@ const delUpdate = async (barcode: number) => {
   );
   
   try{
-  await deleteStoredItem(barcode);
+  await deleteItem(`storedItems`,barcode);
   }catch (error) {
     console.error("Error deleting item:", error);
   }
 
 }
-
-
-
-
-
-
-
-
-
-
-
 
 
   const handleBarCodeScanned = async ({ type, data }: { type: any; data: any }) => {
@@ -141,6 +181,7 @@ const delUpdate = async (barcode: number) => {
    
       console.log(barcodeNumber); // 
       console.log(AiResponse );
+      getTestData();
       /*
       console.log("FB Raw" ,getUserProfile());
       console.log("FB->ARRAY" ,storedItems);
@@ -198,7 +239,7 @@ const delUpdate = async (barcode: number) => {
 
     const url: string = api_base_url + barcode + "?key=" + go_upc_api_key
     
-   // console.log(url); 
+    console.log("GOUPC:",url); 
     
     const response = await fetch(url);
 
@@ -298,8 +339,8 @@ const prompt = `Based off of ${productName}, ${productBrand}, ${productCategory}
 console.log("FR", formattedResponse)
 
 
-      await addStoredItem( barcodeNumber,JSON.parse(formattedResponse));
-      setStoredItems(await getUserStoredItems())
+      await addItem(`storedItems`,barcodeNumber,JSON.parse(formattedResponse));
+      setStoredItems(await getUserItems(`storedItems`))
       // Refresh the stored items list
      
 
@@ -322,6 +363,12 @@ console.log("FR", formattedResponse)
     ],
     [info], // Add 'info' to dependency array so it updates when info changes
   );*/
+
+
+  
+
+
+
 
 
 
@@ -416,31 +463,6 @@ console.log("FR", formattedResponse)
                     </View>
 
             {/* Bottom Portion */}
-{/*
-                    <View style={styles.bottomSection}>
-                      <Text>Items: </Text>
-
-  {auth.currentUser &&
-  storedItems.map((item) => (
-    <View key={item.barcode} style={styles.mainTitle}>
-      
-      <Image
-        source={{ uri: item.image }}
-        style={{ width: 50, height: 50 }}
-      />
-
-      <Text style={styles.itemName}>{item.name}</Text>
-
-      <Text>
-        Ingredients: {(item.ingredients || []).slice(0, 3).join(", ")}
-      </Text>
-      
-      <Button
-  title="Delete"
-  onPress={() => delUpdate(item.barcode)}
-/>*/}
-
-
 
 
 
@@ -475,18 +497,25 @@ console.log("FR", formattedResponse)
                         <Feather name="trash-2" size={20} color="black" />
                       </Pressable>
 
-                      <Pressable style={styles.rowIconBtn}>
-                        <Feather name="zap" size={20} color="black" />
-                      </Pressable>
 
-                      <Pressable style={styles.rowIconBtn}>
+                      <Pressable style={styles.rowIconBtn} 
+                      onPress={()=> {showMode("date");setSelectedItem(item)}}>
+                      
+
                         <Feather name="arrow-right" size={20} color="black" />
                       </Pressable>
+
+                        
+
+
+
                     </View>
                   </View>
                   
                 ))}
               </ScrollView>
+              
+              
 
 
 
@@ -506,7 +535,53 @@ console.log("FR", formattedResponse)
             </View>
           
         </SafeAreaView>
+
+        {/** THIS BLOCK IS FOR THE DATE SELECTOR FOR EXPIRATION DATE + MOVES ITEM FROM STORED->INVENTORY */}
+       {show && (
+  <SafeAreaView style={{ flex: 1, padding: 16 }}>
+    <Text style={{ marginBottom: 10 }}>
+      Please select the expiration date:
+    </Text>
+
+    <DateTimePicker
+      value={date}
+      mode={mode}
+      is24Hour={true}
+      onChange={(event, selectedDate) => {
+        console.log("ran1",barcodeNumber);
+        if (selectedDate) {
+          setDate(selectedDate);
+          console.log("ran2");
+        }
+      }}
+    />
+
+    {/* Buttons */}
+    <View style={{ marginTop: 20, flexDirection: "row", justifyContent: "space-between" }}>
       
+      <Button
+        title="Confirm"
+        onPress={() => {
+          moveToInventory(selectedItem,date)  
+          setShow(false);      
+        }}
+      />
+
+      <Button
+        title="Add later"
+        onPress={() => {
+          
+          moveToInventory(selectedItem,null)      
+          setShow(false);      
+        }}
+      />
+
+    </View>
+  </SafeAreaView>
+)}
+{/*BLOCK CLOSE */}
+        
+        
       
     </SafeAreaProvider>
   );

@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { View, Text, Button, FlatList, StyleSheet, ActivityIndicator, Linking, Pressable } from "react-native";
 import RecipeAIService from "@/app/recipeChatBot"; // Adjust path
-import { getUserStoredItems } from "@/scripts/firebaseHelpers";
+import { getUserItems } from "@/scripts/firebaseHelpers";
 
 
 export default function RecipeScreen() {
@@ -15,9 +15,9 @@ export default function RecipeScreen() {
   const handleGenerateRecipes = async () => {
     setLoading(true);
     try {
-      const storedItems = await getUserStoredItems();
+      const inventory = await getUserItems(`inventory`);
 
-      if (!storedItems || storedItems.length === 0) {
+      if (!inventory || inventory.length === 0) {
         console.log("Your pantry is empty! Scan some items first.");
         setLoading(false);
         return;
@@ -26,7 +26,7 @@ export default function RecipeScreen() {
 
 
       // 1. Call the AI service with your inventory list
-      const rawResponse = await aiService.recommendRecipes(storedItems);
+      const rawResponse = await aiService.recommendRecipes(inventory);
 
       // 2. Parse the "Title - Link" string into an array of objects
       const parsedRecipes = rawResponse

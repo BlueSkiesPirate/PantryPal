@@ -10,13 +10,13 @@ import { View, Text, TextInput, Button,
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../../firebase";
 import { router } from "expo-router";
-import {getUserProfile, deleteStoredItem, addStoredItem} from "../../scripts/firebaseHelpers";
+import {getUserProfile} from "../../scripts/firebaseHelpers";
 import { serializableMappingCache } from "react-native-worklets";
  
 
 export default function Login() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState("Tyu@gmail.com");
+  const [password, setPassword] = useState("qwertyu");
 
   const login = async () => {
     try {
