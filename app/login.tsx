@@ -8,9 +8,9 @@ import { View, Text, TextInput, Button,
 
 } from "react-native";
 import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from "../../firebase";
+import { auth } from "../firebase";
 import { router } from "expo-router";
-import {getUserProfile} from "../../scripts/firebaseHelpers";
+import {getUserProfile} from "../scripts/firebaseHelpers";
 import { serializableMappingCache } from "react-native-worklets";
  
 
