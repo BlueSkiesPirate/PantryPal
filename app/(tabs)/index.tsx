@@ -41,7 +41,8 @@ type ItemType = {
 export default function HomeScreen() {
   const [date, setDate] = useState(new Date());
   const [tempDate, setTempDate] = useState(new Date());
-  const [show, setShow] = useState(false);
+  const [showConfirmView, setShowConfirmView] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [mode, setMode] = useState<"date" | "time" | "datetime">("date");
   const [selectedItem, setSelectedItem] = useState<
     (ItemType & { barcode: string }) | null
@@ -49,10 +50,11 @@ export default function HomeScreen() {
 
   const showMode = (modeToShow) => {
     console.log("Pressed");
-    setShow(true);
+    setShowConfirmView(true);
     setMode(modeToShow);
   };
 
+  //THIS function should save the information for an item to the inventory, and then delete the current "storeItem"
   const moveToInventory = async (
     item: ItemType & { barcode: string },
     expDate: Date,
@@ -90,11 +92,6 @@ export default function HomeScreen() {
   const [barcodeNumber, setBarcodeNumber] = useState(""); // should be safe to del, i'll look it over again ltr maybe
   const [menuOpen, setMenuOpen] = useState(false);
 
-  // const [hasPermission, setHasPermission] = useState(null);
-  // const [scanned, setScanned] = useState(false);
-  // const [text, setText] = useState("Not Yet scanned");
-  let [info, setInfo] = useState("");
-
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [scanData, setScanData] = useState(false);
 
@@ -113,24 +110,23 @@ export default function HomeScreen() {
   const [lastApiCall, setLastApiCall] = useState<number>(0);
   const API_RATE_LIMIT_DELAY = 2000; // 2 seconds between API calls
 
+  //This loads in the items into the page when the user logs in ----------------------------------------------
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
       if (!user) {
         setStoredItems([]);
         return;
       }
-
       const load = async () => {
         const items = await getUserItems(`storedItems`);
         setStoredItems(items);
       };
-
       load();
     });
-
     return unsubscribe;
   }, []);
 
+  //This is the method used to remove items from the "storedItems" ----------------------------------------
   const delUpdate = async (barcode: number) => {
     setStoredItems((prev) => prev.filter((item) => item.barcode !== barcode));
 
@@ -163,7 +159,6 @@ export default function HomeScreen() {
     console.log("Data type:", typeof data);
     console.log("Data as string:", String(data));
     setBarcodeNumber(data);
-    //  console.log("BN:", barcodeNumber);
 
     await AiResponse(data);
   };
@@ -182,8 +177,8 @@ export default function HomeScreen() {
     //functionality of the ai
   };
 
+  //Request perms for the camera
   useEffect(() => {
-    //Request perms for the camera
     (async () => {
       if (Platform.OS === "web") {
         setHasPermission(true);
@@ -193,7 +188,6 @@ export default function HomeScreen() {
       }
     })();
   }, []);
-
   if (!hasPermission) {
     return (
       <View style={styles.container}>
@@ -279,6 +273,7 @@ export default function HomeScreen() {
   //used to initialize the google ai sdk
   const ai = new GoogleGenerativeAI(google_api_key);
 
+  //GEMINI response ---------------------------------------------------------------------------------------
   const AiResponse = async (barcode: string) => {
     console.log("AiResponse called with barcode:", barcode);
     console.log("Barcode type in AiResponse:", typeof barcode);
@@ -355,17 +350,6 @@ export default function HomeScreen() {
       }
     }
   };
-  /*
-  const items: ItemType[] = useMemo(
-    () => [
-      {
-        id: 1,
-        name: info,
-        image: "https://via.placeholder.com/70",
-      },
-    ],
-    [info], // Add 'info' to dependency array so it updates when info changes
-  );*/
 
   return (
     <SafeAreaProvider>
@@ -510,6 +494,7 @@ export default function HomeScreen() {
                           style={styles.rowIconBtn}
                           onPress={() => {
                             showMode("date");
+                            setShowDatePicker(true);
                             setSelectedItem(item);
                           }}
                         >
@@ -525,24 +510,26 @@ export default function HomeScreen() {
       </SafeAreaView>
 
       {/** THIS BLOCK IS FOR THE DATE SELECTOR FOR EXPIRATION DATE + MOVES ITEM FROM STORED->INVENTORY */}
-      {show && (
+      {showConfirmView && (
         <SafeAreaView style={{ flex: 1, padding: 16 }}>
           <Text style={{ marginBottom: 10 }}>
             Please select the expiration date:
           </Text>
 
-          <DateTimePicker
-            value={date}
-            mode={mode}
-            is24Hour={true}
-            onChange={(event, selectedDate) => {
-              console.log("ran1", barcodeNumber);
-              if (selectedDate) {
-                setDate(selectedDate);
-                console.log("ran2");
-              }
-            }}
-          />
+          {showDatePicker && (
+            <DateTimePicker
+              value={date}
+              mode="date"
+              is24Hour={true}
+              onChange={(event, selectedDate) => {
+                if (event.type === "set" && selectedDate) {
+                  setDate(selectedDate);
+                }
+
+                setShowDatePicker(false); // closes only picker popup
+              }}
+            />
+          )}
 
           {/* Buttons */}
           <View
@@ -556,7 +543,7 @@ export default function HomeScreen() {
               title="Confirm"
               onPress={() => {
                 moveToInventory(selectedItem, date);
-                setShow(false);
+                setShowConfirmView(false);
               }}
             />
 
@@ -564,7 +551,7 @@ export default function HomeScreen() {
               title="Add later"
               onPress={() => {
                 moveToInventory(selectedItem, null);
-                setShow(false);
+                setShowConfirmView(false);
               }}
             />
           </View>
