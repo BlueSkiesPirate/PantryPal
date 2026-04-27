@@ -15,7 +15,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
-
+import { deleteItem } from "../../scripts/firebaseHelpers";
 //For firebase:
 import { db } from "@/firebase";
 import { getAuth } from "firebase/auth";
@@ -30,7 +30,7 @@ type PantryItem = {
   daysLeft: number;
   status: ExpiryStatus;
   expDate?: Date;
-  information: string;
+  ingredients: string[];
   image: string;
 };
 
@@ -44,7 +44,7 @@ const getStatusColor = (status: ExpiryStatus) => {
       return "#37d61d";
     case "soon":
       return "#e0b400";
-    case "urgent":
+    case "expired":
       return "#c84b49";
     default:
       return "#cfcfcf";
@@ -68,7 +68,7 @@ const ItemCard = ({
       <View style={styles.cardImageArea}>
         <Image
           source={{ uri: item.image }}
-          style={{ width: 100, height: 100 }}
+          style={{ width: "100%", height: "100%" }}
         />
       </View>
       <View
@@ -91,13 +91,23 @@ const ItemDetailModal = ({
   visible,
   slideAnim,
   onClose,
+  onDelete,
 }: {
   item: PantryItem | null;
   visible: boolean;
   slideAnim: Animated.Value;
   onClose: () => void;
+  onDelete: (id: string) => void;
 }) => {
   if (!visible || !item) return null;
+
+  // function delUpdate(
+  //   id: string,
+  // ):
+  //   | ((event: import("react-native").GestureResponderEvent) => void)
+  //   | undefined {
+  //   throw new Error("Function not implemented.");
+  // }
 
   return (
     <View style={styles.modalRoot} pointerEvents="box-none">
@@ -117,7 +127,12 @@ const ItemDetailModal = ({
       >
         <View style={styles.sheetHandle} />
         <View style={styles.sheetTopRow}>
-          <View style={styles.sheetImagePlaceholder} />
+          <View style={styles.sheetImagePlaceholder}>
+            <Image
+              source={{ uri: item.image }}
+              style={{ width: "100%", height: "100%" }}
+            />
+          </View>
           <View style={styles.sheetTextColumn}>
             <Text style={styles.sheetItemName}>{item.name}</Text>
             <Text style={styles.sheetDateText}>
@@ -125,11 +140,28 @@ const ItemDetailModal = ({
               {item.expDate ? item.expDate.toLocaleDateString() : "null"}
             </Text>
           </View>
-          <TouchableOpacity style={styles.trashButton} onPress={onClose}>
+          <TouchableOpacity
+            style={styles.trashButton}
+            onPress={() => {
+              onDelete(item.id);
+              onClose;
+            }}
+          >
             <Ionicons name="trash-outline" size={20} color="#111" />
           </TouchableOpacity>
         </View>
-        <Text style={styles.sheetInfoText}>{item.information}</Text>
+        <Text style={styles.ingredientsHeader}>ingredients list:</Text>
+        <ScrollView style={styles.ingredientsContainer}>
+          {item.ingredients.map((ingredient, index) => {
+            return (
+              <View key={index} style={styles.ingredientRow}>
+                <Text style={styles.sheetInfoText}>
+                  {item.ingredients[index]}
+                </Text>
+              </View>
+            );
+          })}
+        </ScrollView>
       </Animated.View>
     </View>
   );
@@ -144,11 +176,10 @@ export default function PantryScreen() {
   const [isDetailVisible, setIsDetailVisible] = useState(false);
   const slideAnim = useRef(new Animated.Value(320)).current;
 
-  const expiringSoonData: PantryItem[] = [];
-
   const [items, setItems] = useState<PantryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const [removedItem, SetRemovedItem] = useState<PantryItem[]>([]);
 
   const pantryItemsData: PantryItem[] = items;
 
@@ -185,6 +216,17 @@ export default function PantryScreen() {
       return "fresh";
     }
   };
+
+  const delUpdate = async (barcode: string) => {
+    setItems((prev) => prev.filter((item) => item.id !== barcode));
+
+    try {
+      await deleteItem(`inventory`, barcode);
+    } catch (error) {
+      console.error("Error deleting item:", error);
+    }
+  };
+
   //This is the hook we use to obtain the information from the firestore database-------------------
   useEffect(() => {
     async function fetchItems() {
@@ -213,7 +255,7 @@ export default function PantryScreen() {
               daysLeft: item.daysLeft || 0,
               status: checkDate(item.expDate?.toDate?.()),
               expDate: item.expDate?.toDate?.() || "",
-              information: item.information || "",
+              ingredients: item.ingredients || [],
               image: item.image || "",
               allergies: item.allergies || [],
             }),
@@ -323,7 +365,7 @@ export default function PantryScreen() {
             >
               {filteredPantryItems.map((item) =>
                 item.expDate &&
-                item.expDate?.getDate() < new Date().getDate() + 7 ? (
+                (item.status == "expired" || item.status == "soon") ? (
                   <View key={item.id} style={styles.horizontalCardWrapper}>
                     <ItemCard item={item} onPress={openDetail} />
                   </View>
@@ -388,6 +430,7 @@ export default function PantryScreen() {
           visible={isDetailVisible}
           slideAnim={slideAnim}
           onClose={closeDetail}
+          onDelete={delUpdate}
         />
       </SafeAreaView>
     </SafeAreaProvider>
@@ -604,6 +647,22 @@ const styles = StyleSheet.create({
     color: "#111",
     textTransform: "lowercase",
   },
+  ingredientsContainer: {
+    backgroundColor: "white",
+    marginTop: 10,
+    height: 200,
+    overflowY: "scroll",
+  },
+
+  ingredientsHeader: {
+    fontSize: 20,
+    marginTop: 10,
+  },
+  ingredientRow: {
+    borderColor: "black",
+    borderWidth: 1,
+  },
+
   card: {
     width: "100%",
     borderRadius: 2,
