@@ -1,18 +1,17 @@
-import { useState } from "react";
-import { View, Text, TextInput, Button,
-  StyleSheet, 
-    
-  TouchableOpacity, 
-  KeyboardAvoidingView, 
-  Platform
-
-} from "react-native";
+import { Link, router } from "expo-router";
 import { signInWithEmailAndPassword } from "firebase/auth";
+import { useState } from "react";
+import {
+  KeyboardAvoidingView,
+  Platform,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { auth } from "../firebase";
-import { router } from "expo-router";
-import {getUserProfile} from "../scripts/firebaseHelpers";
-import { serializableMappingCache } from "react-native-worklets";
- 
+import { getUserProfile } from "../scripts/firebaseHelpers";
 
 export default function Login() {
   const [email, setEmail] = useState("Tyu@gmail.com");
@@ -25,15 +24,13 @@ export default function Login() {
       console.log("Login error:", err.message);
     }
     const profile = await getUserProfile();
-  console.log("User profile:", profile);
+    console.log("User profile:", profile);
     router.replace("/(tabs)");
-
   };
-    console.log("LOGIN SCREEN LOADED");
-  
+  console.log("LOGIN SCREEN LOADED");
 
-return (
-    <KeyboardAvoidingView 
+  return (
+    <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={styles.container}
     >
@@ -43,7 +40,7 @@ return (
 
         <View style={styles.inputContainer}>
           <Text style={styles.label}>Email</Text>
-          <TextInput 
+          <TextInput
             style={styles.input}
             placeholder="example@mail.com"
             placeholderTextColor="#aaa"
@@ -55,7 +52,7 @@ return (
 
         <View style={styles.inputContainer}>
           <Text style={styles.label}>Password</Text>
-          <TextInput 
+          <TextInput
             style={styles.input}
             placeholder="••••••••"
             placeholderTextColor="#aaa"
@@ -71,6 +68,11 @@ return (
         <TouchableOpacity style={styles.forgotButton}>
           <Text style={styles.forgotText}>Forgot Password?</Text>
         </TouchableOpacity>
+        <Link href="/register" style={styles.AlreadyHaveAnAccountButton}>
+          <Text style={{ color: "blue" }}>
+            Already have an account? Log In Here
+          </Text>
+        </Link>
       </View>
     </KeyboardAvoidingView>
   );
@@ -79,41 +81,43 @@ return (
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F7FA',
+    backgroundColor: "#F5F7FA",
   },
   innerContainer: {
     flex: 1,
-    justifyContent: 'center',
+    justifyContent: "center",
     paddingHorizontal: 30,
   },
   title: {
     fontSize: 32,
-    fontWeight: 'bold',
-    color: '#1A1C1E',
+    fontWeight: "bold",
+    color: "#1A1C1E",
     marginBottom: 8,
+    textAlign: "center",
   },
   subtitle: {
     fontSize: 16,
-    color: '#6C7278',
+    color: "#6C7278",
     marginBottom: 40,
+    textAlign: "center",
   },
   inputContainer: {
     marginBottom: 20,
   },
   label: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#1A1C1E',
+    fontWeight: "600",
+    color: "#1A1C1E",
     marginBottom: 8,
   },
   input: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     height: 55,
     borderRadius: 12,
     paddingHorizontal: 15,
     fontSize: 16,
     borderWidth: 1,
-    borderColor: '#DCDFE4',
+    borderColor: "#DCDFE4",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
@@ -121,11 +125,11 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   button: {
-    backgroundColor: '#007AFF',
+    backgroundColor: "#007AFF",
     height: 55,
     borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginTop: 10,
     shadowColor: "#007AFF",
     shadowOffset: { width: 0, height: 4 },
@@ -134,16 +138,21 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   buttonText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   forgotButton: {
     marginTop: 20,
-    alignItems: 'center',
+    alignItems: "center",
   },
   forgotText: {
-    color: '#007AFF',
-    fontWeight: '600',
+    color: "#007AFF",
+    fontWeight: "600",
+  },
+  AlreadyHaveAnAccountButton: {
+    textAlign: "center",
+    marginTop: 20,
+    fontWeight: "black",
   },
 });
