@@ -24,7 +24,7 @@ export default function Login() {
       console.log("Login error:", err.message);
     }
     const profile = await getUserProfile();
-    console.log("User profile:", profile);
+    // console.log("User profile:", profile); //LOgs user info
     router.replace("/(tabs)");
   };
   console.log("LOGIN SCREEN LOADED");

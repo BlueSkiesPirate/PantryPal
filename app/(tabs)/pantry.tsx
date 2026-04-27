@@ -21,7 +21,7 @@ import { db } from "@/firebase";
 import { getAuth } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 
-type ExpiryStatus = "fresh" | "soon" | "urgent";
+type ExpiryStatus = "fresh" | "soon" | "expired";
 
 type PantryItem = {
   id: string;
@@ -167,12 +167,33 @@ export default function PantryScreen() {
     });
   }, [items, search, selectedFilter]);
 
+  //This is what we use to check whether the items are expired, close to expiration or fresh
+  const checkDate = (date: Date) => {
+    const thisDate = new Date();
+
+    //One day in milliseconds
+    const oneDay = 1000 * 60 * 60 * 24;
+    const diffTime = date.getTime() - thisDate.getTime(); //Returns milliseconds since 1970
+
+    const diffInDays = Math.round(diffTime / oneDay);
+
+    if (diffInDays < 0) {
+      return "expired";
+    } else if (diffInDays < 8) {
+      return "soon";
+    } else {
+      return "fresh";
+    }
+  };
   //This is the hook we use to obtain the information from the firestore database-------------------
   useEffect(() => {
     async function fetchItems() {
       try {
         const auth = getAuth();
         const user = auth.currentUser;
+
+        const date = new Date();
+
         if (!user) {
           console.log("USer not logged in");
           return;
@@ -190,7 +211,7 @@ export default function PantryScreen() {
               name: item.productName || "Unnamed",
               category: item.category || "pantry",
               daysLeft: item.daysLeft || 0,
-              status: item.status || "fresh",
+              status: checkDate(item.expDate?.toDate?.()),
               expDate: item.expDate?.toDate?.() || "",
               information: item.information || "",
               image: item.image || "",
@@ -198,7 +219,7 @@ export default function PantryScreen() {
             }),
           );
 
-          console.log("inventory array:", data);
+          // console.log("inventory array:", data);
           setItems(data);
         }
       } catch (error) {
