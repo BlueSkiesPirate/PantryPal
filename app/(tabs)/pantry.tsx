@@ -101,14 +101,6 @@ const ItemDetailModal = ({
 }) => {
   if (!visible || !item) return null;
 
-  // function delUpdate(
-  //   id: string,
-  // ):
-  //   | ((event: import("react-native").GestureResponderEvent) => void)
-  //   | undefined {
-  //   throw new Error("Function not implemented.");
-  // }
-
   return (
     <View style={styles.modalRoot} pointerEvents="box-none">
       <Pressable style={styles.overlayPressable} onPress={onClose}>
@@ -135,16 +127,25 @@ const ItemDetailModal = ({
           </View>
           <View style={styles.sheetTextColumn}>
             <Text style={styles.sheetItemName}>{item.name}</Text>
-            <Text style={styles.sheetDateText}>
-              exp date:{" "}
-              {item.expDate ? item.expDate.toLocaleDateString() : "null"}
-            </Text>
+            <View style={styles.expContainView}>
+              <Text style={styles.sheetDateText}>
+                exp date:{" "}
+                {item.expDate ? item.expDate.toLocaleDateString() : "null"}
+              </Text>
+              <TouchableOpacity
+                onPress={() => {
+                  onClose();
+                }}
+              >
+                <Ionicons name="create-outline" size={20} color="#111" />
+              </TouchableOpacity>
+            </View>
           </View>
           <TouchableOpacity
             style={styles.trashButton}
             onPress={() => {
               onDelete(item.id);
-              onClose;
+              onClose();
             }}
           >
             <Ionicons name="trash-outline" size={20} color="#111" />
@@ -647,6 +648,14 @@ const styles = StyleSheet.create({
     color: "#111",
     textTransform: "lowercase",
   },
+
+  expContainView: {
+    // backgroundColor: "red",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingRight: 40,
+  },
   ingredientsContainer: {
     backgroundColor: "white",
     marginTop: 10,
@@ -661,6 +670,7 @@ const styles = StyleSheet.create({
   ingredientRow: {
     borderColor: "black",
     borderWidth: 1,
+    paddingLeft: 5,
   },
 
   card: {
