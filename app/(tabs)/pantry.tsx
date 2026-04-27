@@ -29,7 +29,7 @@ type PantryItem = {
   category: string;
   daysLeft: number;
   status: ExpiryStatus;
-  expDate?: string;
+  expDate?: Date;
   information: string;
   image: string;
 };
@@ -37,8 +37,7 @@ type PantryItem = {
 const FILTERS = ["All", "add", "fridge", "pantry"] as const;
 type FilterType = (typeof FILTERS)[number];
 
-const expiringSoonData: PantryItem[] = [];
-
+//This represents the color of the items as they get closer to EXPDATE
 const getStatusColor = (status: ExpiryStatus) => {
   switch (status) {
     case "fresh":
@@ -53,7 +52,6 @@ const getStatusColor = (status: ExpiryStatus) => {
 };
 
 //THIS IS WHAT POPULATES THE PANTRY PAGE ---------------------------------------------
-
 const ItemCard = ({
   item,
   onPress,
@@ -118,20 +116,19 @@ const ItemDetailModal = ({
         ]}
       >
         <View style={styles.sheetHandle} />
-
         <View style={styles.sheetTopRow}>
           <View style={styles.sheetImagePlaceholder} />
-
           <View style={styles.sheetTextColumn}>
             <Text style={styles.sheetItemName}>{item.name}</Text>
-            <Text style={styles.sheetDateText}>exp date: {item.expDate}</Text>
+            <Text style={styles.sheetDateText}>
+              exp date:{" "}
+              {item.expDate ? item.expDate.toLocaleDateString() : "null"}
+            </Text>
           </View>
-
           <TouchableOpacity style={styles.trashButton} onPress={onClose}>
             <Ionicons name="trash-outline" size={20} color="#111" />
           </TouchableOpacity>
         </View>
-
         <Text style={styles.sheetInfoText}>{item.information}</Text>
       </Animated.View>
     </View>
@@ -147,11 +144,15 @@ export default function PantryScreen() {
   const [isDetailVisible, setIsDetailVisible] = useState(false);
   const slideAnim = useRef(new Animated.Value(320)).current;
 
+  const expiringSoonData: PantryItem[] = [];
+
   const [items, setItems] = useState<PantryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
   const pantryItemsData: PantryItem[] = items;
+
+  //This is used to filter the items by the Search bar and by the individual filters -----------------
 
   const filteredPantryItems = useMemo(() => {
     return pantryItemsData.filter((item) => {
@@ -166,6 +167,7 @@ export default function PantryScreen() {
     });
   }, [items, search, selectedFilter]);
 
+  //This is the hook we use to obtain the information from the firestore database-------------------
   useEffect(() => {
     async function fetchItems() {
       try {
@@ -180,7 +182,7 @@ export default function PantryScreen() {
 
         if (userSnap.exists()) {
           const userData = userSnap.data();
-          const raw = userData.storedItems || {};
+          const raw = userData.inventory || {};
 
           const data: PantryItem[] = Object.entries(raw).map(
             ([id, item]: [string, any]) => ({
@@ -189,17 +191,14 @@ export default function PantryScreen() {
               category: item.category || "pantry",
               daysLeft: item.daysLeft || 0,
               status: item.status || "fresh",
-              expDate: item.expDate || "",
+              expDate: item.expDate?.toDate?.() || "",
               information: item.information || "",
               image: item.image || "",
               allergies: item.allergies || [],
             }),
           );
 
-          console.log("storedItems array:", data);
-          setItems(data);
-
-          console.log("storedItems:", data);
+          console.log("inventory array:", data);
           setItems(data);
         }
       } catch (error) {
@@ -215,6 +214,7 @@ export default function PantryScreen() {
     return <ActivityIndicator />;
   }
 
+  // The "openDetail" and "closeDetail" handle the animation behavior of the "ItemDetailModal" pop-up------------
   const openDetail = (item: PantryItem) => {
     setSelectedItem(item);
     setIsDetailVisible(true);
@@ -226,7 +226,6 @@ export default function PantryScreen() {
       useNativeDriver: true,
     }).start();
   };
-
   const closeDetail = () => {
     Animated.timing(slideAnim, {
       toValue: 320,
@@ -250,6 +249,8 @@ export default function PantryScreen() {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.container}>
+            {/*Start of the Pantrry Page top section
+            ================================================================*/}
             <View style={styles.headerRow}>
               <Text style={styles.headerTitle}>My pantry</Text>
 
@@ -273,7 +274,6 @@ export default function PantryScreen() {
                 </TouchableOpacity>
               </View>
             </View>
-
             <View style={styles.searchRow}>
               <View style={styles.searchBar}>
                 <TextInput
@@ -288,22 +288,29 @@ export default function PantryScreen() {
                 <Ionicons name="search" size={20} color="#111" />
               </TouchableOpacity>
             </View>
+            {/*===============================================================
+            END of the Pantrry Page top section
+            ================================================================*/}
 
+            {/* EXPIRING SOON SECTION ================================================= */}
             <Text style={styles.sectionTitle}>Expiring soon</Text>
-
             <ScrollView
               horizontal
               nestedScrollEnabled
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.horizontalListContent}
             >
-              {expiringSoonData.map((item) => (
-                <View key={item.id} style={styles.horizontalCardWrapper}>
-                  <ItemCard item={item} onPress={openDetail} />
-                </View>
-              ))}
+              {filteredPantryItems.map((item) =>
+                item.expDate &&
+                item.expDate?.getDate() < new Date().getDate() + 7 ? (
+                  <View key={item.id} style={styles.horizontalCardWrapper}>
+                    <ItemCard item={item} onPress={openDetail} />
+                  </View>
+                ) : null,
+              )}
             </ScrollView>
 
+            {/* FILTERS SECTION ================================================= */}
             <View style={styles.filterRow}>
               {FILTERS.map((filter) => {
                 const isSelected = selectedFilter === filter;
@@ -331,6 +338,7 @@ export default function PantryScreen() {
 
             <View style={styles.divider} />
 
+            {/* ITEMS SECTION ================================================= */}
             <View style={styles.gridContent}>
               {filteredPantryItems.map((item, index) => {
                 const isLeft = index % 2 === 0;

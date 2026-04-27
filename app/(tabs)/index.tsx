@@ -1,4 +1,8 @@
+import { Feather } from "@expo/vector-icons";
+import { GoogleGenerativeAI } from "@google/generative-ai";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { Camera, CameraView } from "expo-camera";
+import { doc, updateDoc } from "firebase/firestore";
 import { useEffect, useRef, useState } from "react";
 import {
   Button,
@@ -11,29 +15,19 @@ import {
   Text,
   View,
 } from "react-native";
-
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
-
-import { Feather } from "@expo/vector-icons";
-
-import { GoogleGenerativeAI } from "@google/generative-ai";
-
+import { auth, db } from "../../firebase";
 import {
   addItem,
   deleteItem,
   getUserItems,
 } from "../../scripts/firebaseHelpers";
-
-import { doc, updateDoc } from "firebase/firestore";
-import { auth, db } from "../../firebase";
-
 import getTestData from "../testData";
-
-import DateTimePicker from "@react-native-community/datetimepicker";
 
 const { width, height } = Dimensions.get("window");
 const MENU_WIDTH = width / 3;
 
+//This is the information for the storedItems
 type ItemType = {
   barcode: number;
   productName: string;
