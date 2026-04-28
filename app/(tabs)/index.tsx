@@ -308,7 +308,7 @@ export default function HomeScreen() {
       */
 
       const model = ai.getGenerativeModel({
-        model: "gemini-3-flash-preview",
+        model: "gemini-3-flash-lite-preview",
       });
       const result = await model.generateContent(prompt);
       //Must store this now instead of console.log
@@ -326,9 +326,10 @@ export default function HomeScreen() {
 
       console.log("FR", formattedResponse);
 
+      const barcodeString = String(barcode).trim();
       await addItem(
         `storedItems`,
-        barcodeNumber,
+        barcodeString,
         JSON.parse(formattedResponse),
       );
       setStoredItems(await getUserItems(`storedItems`));

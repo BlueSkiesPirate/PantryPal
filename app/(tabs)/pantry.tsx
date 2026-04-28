@@ -105,6 +105,8 @@ const ItemDetailModal = ({
 }) => {
   if (!visible || !item) return null;
 
+  const ingredients = Array.isArray(item.ingredients) ? item.ingredients : [];
+
   return (
     <View style={styles.modalRoot} pointerEvents="box-none">
       <Pressable style={styles.overlayPressable} onPress={onClose}>
@@ -157,15 +159,17 @@ const ItemDetailModal = ({
         </View>
         <Text style={styles.ingredientsHeader}>ingredients list:</Text>
         <ScrollView style={styles.ingredientsContainer}>
-          {item.ingredients.map((ingredient, index) => {
-            return (
-              <View key={index} style={styles.ingredientRow}>
-                <Text style={styles.sheetInfoText}>
-                  {item.ingredients[index]}
-                </Text>
-              </View>
-            );
-          })}
+          {ingredients.length > 0 ? (
+            ingredients.map((ingredient, index) => {
+              return (
+                <View key={index} style={styles.ingredientRow}>
+                  <Text style={styles.sheetInfoText}>{ingredient}</Text>
+                </View>
+              );
+            })
+          ) : (
+            <Text style={styles.sheetInfoText}>No ingredients available.</Text>
+          )}
         </ScrollView>
       </Animated.View>
     </View>
