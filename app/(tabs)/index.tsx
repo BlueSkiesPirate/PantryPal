@@ -308,7 +308,7 @@ export default function HomeScreen() {
       */
 
       const model = ai.getGenerativeModel({
-        model: "gemini-3.1-flash-lite-preview",
+        model: "gemini-3-flash-preview",
       });
       const result = await model.generateContent(prompt);
       //Must store this now instead of console.log

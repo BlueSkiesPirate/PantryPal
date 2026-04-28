@@ -70,7 +70,7 @@ export default function Login() {
         </TouchableOpacity>
         <Link href="/register" style={styles.AlreadyHaveAnAccountButton}>
           <Text style={{ color: "blue" }}>
-            Already have an account? Log In Here
+            Don't have an account? Sign Up Here
           </Text>
         </Link>
       </View>
@@ -125,20 +125,20 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   button: {
-    backgroundColor: "#007AFF",
+    backgroundColor: "#45ff54",
     height: 55,
     borderRadius: 12,
     justifyContent: "center",
     alignItems: "center",
     marginTop: 10,
-    shadowColor: "#007AFF",
+    shadowColor: "#45ff54",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 5,
     elevation: 5,
   },
   buttonText: {
-    color: "#FFFFFF",
+    color: "#black",
     fontSize: 18,
     fontWeight: "bold",
   },

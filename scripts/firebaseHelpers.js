@@ -48,6 +48,12 @@ The jsonData shouldn't include barcode as it's used as an identifier when deleti
 
 */
 export async function addItem(fieldName, barcode, jsonData) {
+  // Validate barcode
+  if (!barcode || barcode.trim() === "") {
+    console.error("Error: Barcode cannot be empty");
+    throw new Error("Barcode cannot be empty");
+  }
+
   const userDocRef = doc(db, "users", auth.currentUser.uid);
 
   try {
