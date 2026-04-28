@@ -84,6 +84,34 @@ export async function deleteItem(fieldName, barcode) {
   return getUserItems(fieldName);
 }
 
+export async function updateItemField(
+  fieldName,
+  barcode,
+  keyToUpdate,
+  newValue,
+) {
+  const user = auth.currentUser;
+
+  if (!user) {
+    console.log("No user is logged in");
+    return null;
+  }
+
+  const userDocRef = doc(db, "users", user.uid);
+
+  try {
+    await updateDoc(userDocRef, {
+      [`${fieldName}.${barcode}.${keyToUpdate}`]: newValue,
+    });
+
+    console.log("Updated item field:", keyToUpdate);
+  } catch (error) {
+    console.error("Error updating item field:", error);
+  }
+
+  return getUserItems(fieldName);
+}
+
 /*
 getUserItems(fieldName)
 String fieldName: Firebase fieldName; Ex. email,createdAt,storedItems,inventory, etc.

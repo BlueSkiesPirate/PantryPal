@@ -15,7 +15,9 @@ import {
   View,
 } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
-import { deleteItem } from "../../scripts/firebaseHelpers";
+import { deleteItem, updateItemField } from "../../scripts/firebaseHelpers";
+
+import DateTimePicker from "@react-native-community/datetimepicker";
 //For firebase:
 import { db } from "@/firebase";
 import { getAuth } from "firebase/auth";
@@ -92,12 +94,14 @@ const ItemDetailModal = ({
   slideAnim,
   onClose,
   onDelete,
+  onEdit,
 }: {
   item: PantryItem | null;
   visible: boolean;
   slideAnim: Animated.Value;
   onClose: () => void;
   onDelete: (id: string) => void;
+  onEdit: (id: string) => void;
 }) => {
   if (!visible || !item) return null;
 
@@ -134,7 +138,7 @@ const ItemDetailModal = ({
               </Text>
               <TouchableOpacity
                 onPress={() => {
-                  onClose();
+                  onEdit(item.id);
                 }}
               >
                 <Ionicons name="create-outline" size={20} color="#111" />
@@ -176,6 +180,9 @@ export default function PantryScreen() {
   const [selectedItem, setSelectedItem] = useState<PantryItem | null>(null);
   const [isDetailVisible, setIsDetailVisible] = useState(false);
   const slideAnim = useRef(new Animated.Value(320)).current;
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [date, setDate] = useState(new Date());
+  const [selectedbarcode, setSelectedBarcode] = useState("");
 
   const [items, setItems] = useState<PantryItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -197,7 +204,7 @@ export default function PantryScreen() {
 
       return matchesSearch && matchesFilter;
     });
-  }, [items, search, selectedFilter]);
+  }, [items, search, date, selectedFilter]);
 
   //This is what we use to check whether the items are expired, close to expiration or fresh
   const checkDate = (date: Date) => {
@@ -228,6 +235,10 @@ export default function PantryScreen() {
     }
   };
 
+  const updateDate = async (barcode: string, newDate: Date) => {
+    console.log("inventory " + barcode + " expdate " + newDate);
+    await updateItemField(`inventory`, barcode, `expDate`, newDate);
+  };
   //This is the hook we use to obtain the information from the firestore database-------------------
   useEffect(() => {
     async function fetchItems() {
@@ -273,7 +284,7 @@ export default function PantryScreen() {
     }
 
     fetchItems();
-  }, []);
+  }, [date]);
   if (loading) {
     return <ActivityIndicator />;
   }
@@ -352,6 +363,22 @@ export default function PantryScreen() {
                 <Ionicons name="search" size={20} color="#111" />
               </TouchableOpacity>
             </View>
+
+            {showDatePicker && (
+              <DateTimePicker
+                value={date}
+                mode="date"
+                is24Hour={true}
+                onChange={(event, selectedDate) => {
+                  if (event.type === "set" && selectedDate) {
+                    setDate(selectedDate);
+                    updateDate(selectedbarcode, selectedDate);
+                  }
+
+                  setShowDatePicker(false); // closes only picker popup
+                }}
+              />
+            )}
             {/*===============================================================
             END of the Pantrry Page top section
             ================================================================*/}
@@ -432,6 +459,10 @@ export default function PantryScreen() {
           slideAnim={slideAnim}
           onClose={closeDetail}
           onDelete={delUpdate}
+          onEdit={(id) => {
+            setShowDatePicker(true);
+            setSelectedBarcode(id);
+          }}
         />
       </SafeAreaView>
     </SafeAreaProvider>
